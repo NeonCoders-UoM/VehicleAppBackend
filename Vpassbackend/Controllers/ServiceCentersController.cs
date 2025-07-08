@@ -38,7 +38,7 @@ namespace Vpassbackend.Controllers
         public async Task<ActionResult<ServiceCenterDto>> CreateServiceCenter(ServiceCenterCreateDto serviceCenterCreateDto)
         {
             var serviceCenter = await _serviceCenterService.CreateServiceCenterAsync(serviceCenterCreateDto);
-            return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.ServiceId }, serviceCenter);
+            return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.Station_id }, serviceCenter);
         }
 
         [HttpPut("{id}")]

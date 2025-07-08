@@ -10,7 +10,7 @@ namespace Vpassbackend.DTOs
         public string? Status { get; set; }
         public string? Type { get; set; }
         public string? Description { get; set; }
-        
+
         public VehicleDto? Vehicle { get; set; }
         public ServiceDto? Service { get; set; }
         public CustomerDto? Customer { get; set; }

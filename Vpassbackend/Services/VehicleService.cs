@@ -40,7 +40,7 @@ namespace Vpassbackend.Services
             var vehicle = await _context.Vehicles
                 .Include(v => v.Customer)
                 .FirstOrDefaultAsync(v => v.VehicleId == id);
-            
+
             if (vehicle == null)
             {
                 return null;
@@ -55,7 +55,7 @@ namespace Vpassbackend.Services
                 .Where(v => v.CustomerId == customerId)
                 .Include(v => v.Customer)
                 .ToListAsync();
-            
+
             return _mapper.Map<IEnumerable<VehicleDto>>(vehicles);
         }
 

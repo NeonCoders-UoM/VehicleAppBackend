@@ -12,6 +12,7 @@ namespace Vpassbackend.Services
         Task<CustomerDto?> GetCustomerByIdAsync(int id);
         Task<CustomerDto> CreateCustomerAsync(CustomerCreateDto customerCreateDto);
         Task<CustomerDto?> UpdateCustomerAsync(int id, CustomerUpdateDto customerUpdateDto);
+        Task<CustomerDto?> UpdateProfilePictureAsync(int id, CustomerUpdateDto customerUpdateDto);
         Task<bool> DeleteCustomerAsync(int id);
     }
 
@@ -61,6 +62,25 @@ namespace Vpassbackend.Services
             }
 
             _mapper.Map(customerUpdateDto, customer);
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<CustomerDto>(customer);
+        }
+
+        public async Task<CustomerDto?> UpdateProfilePictureAsync(int id, CustomerUpdateDto customerUpdateDto)
+        {
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
+            {
+                return null;
+            }
+
+            // Only update the profile picture field
+            if (!string.IsNullOrEmpty(customerUpdateDto.ProfilePicture))
+            {
+                customer.ProfilePicture = customerUpdateDto.ProfilePicture;
+            }
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<CustomerDto>(customer);

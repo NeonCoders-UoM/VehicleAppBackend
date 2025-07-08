@@ -7,7 +7,7 @@ namespace Vpassbackend.DTOs
         public string? Description { get; set; }
         public decimal? BasePrice { get; set; }
         public int? LoyaltyPoints { get; set; }
-        public int ServiceCenterId { get; set; }
+        public int Station_id { get; set; }
         public ServiceCenterDto? ServiceCenter { get; set; }
     }
 
@@ -17,7 +17,7 @@ namespace Vpassbackend.DTOs
         public string? Description { get; set; }
         public decimal? BasePrice { get; set; }
         public int? LoyaltyPoints { get; set; }
-        public int ServiceCenterId { get; set; }
+        public int Station_id { get; set; }
     }
 
     public class ServiceUpdateDto

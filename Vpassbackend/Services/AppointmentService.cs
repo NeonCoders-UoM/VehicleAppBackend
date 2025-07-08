@@ -46,7 +46,7 @@ namespace Vpassbackend.Services
                 .Include(a => a.Vehicle)
                 .Include(a => a.Service)
                 .FirstOrDefaultAsync(a => a.AppointmentId == id);
-            
+
             if (appointment == null)
             {
                 return null;
@@ -63,7 +63,7 @@ namespace Vpassbackend.Services
                 .Include(a => a.Vehicle)
                 .Include(a => a.Service)
                 .ToListAsync();
-            
+
             return _mapper.Map<IEnumerable<AppointmentDto>>(appointments);
         }
 
@@ -75,7 +75,7 @@ namespace Vpassbackend.Services
                 .Include(a => a.Vehicle)
                 .Include(a => a.Service)
                 .ToListAsync();
-            
+
             return _mapper.Map<IEnumerable<AppointmentDto>>(appointments);
         }
 
@@ -87,7 +87,7 @@ namespace Vpassbackend.Services
                 .Include(a => a.Vehicle)
                 .Include(a => a.Service)
                 .ToListAsync();
-            
+
             return _mapper.Map<IEnumerable<AppointmentDto>>(appointments);
         }
 
@@ -95,7 +95,7 @@ namespace Vpassbackend.Services
         {
             var appointment = _mapper.Map<Appointment>(appointmentCreateDto);
             appointment.Status = "Scheduled"; // Default status for new appointments
-            
+
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
 

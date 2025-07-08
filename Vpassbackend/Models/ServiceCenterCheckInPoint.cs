@@ -7,13 +7,13 @@ namespace Vpassbackend.Models
     {
         [Key]
         public int StationId { get; set; }
-        
+
         [ForeignKey("ServiceCenter")]
-        public int ServiceId { get; set; }
-        
+        public int Station_id { get; set; }
+
         [MaxLength(50)]
         public string? Name { get; set; }
-        
+
         // Navigation properties
         public ServiceCenter ServiceCenter { get; set; }
     }

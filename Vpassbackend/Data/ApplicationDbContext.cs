@@ -53,19 +53,19 @@ namespace Vpassbackend.Data
             modelBuilder.Entity<Service>()
                 .HasOne(s => s.ServiceCenter)
                 .WithMany(sc => sc.Services)
-                .HasForeignKey(s => s.ServiceCenterId)
+                .HasForeignKey(s => s.Station_id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ServiceCenterCheckInPoint>()
                 .HasOne(s => s.ServiceCenter)
                 .WithMany(sc => sc.CheckInPoints)
-                .HasForeignKey(s => s.ServiceId)
+                .HasForeignKey(s => s.Station_id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Invoice>()
-                .HasOne(i => i.Customer)
-                .WithMany(c => c.Invoices)
-                .HasForeignKey(i => i.CustomerId)
+                .HasOne(i => i.Vehicle)
+                .WithMany(v => v.Invoices)
+                .HasForeignKey(i => i.VehicleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<PaymentLog>()

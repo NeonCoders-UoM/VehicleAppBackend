@@ -20,6 +20,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenter> ServiceCenters { get; set; }
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<FuelUsage> FuelUsages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

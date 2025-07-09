@@ -531,10 +531,10 @@
           }
         }
       },
-      "Microsoft.EntityFrameworkCore.Tools/8.0.18": {
+      "Microsoft.EntityFrameworkCore.Tools/8.0.15": {
         "type": "package",
         "dependencies": {
-          "Microsoft.EntityFrameworkCore.Design": "8.0.18"
+          "Microsoft.EntityFrameworkCore.Design": "8.0.15"
         },
         "compile": {
           "lib/net8.0/_._": {}
@@ -2320,10 +2320,10 @@
         "microsoft.entityframeworkcore.sqlserver.nuspec"
       ]
     },
-    "Microsoft.EntityFrameworkCore.Tools/8.0.18": {
-      "sha512": "NjAp3CYIbaH6esFt2knQdib+it1mL17v6wtKGuhNpj2x5LqHCEIa53zcH3HTq+jzOBsUWu2chxsBXHo5d2ff0g==",
+    "Microsoft.EntityFrameworkCore.Tools/8.0.15": {
+      "sha512": "wJXtK7IpA3tujDW4gpy21WLciPyP24Y5CaBeWxjbyPhUOvvDeVbjFb5ZoTJI80MELWjcD1ONlJ1WR6OlTTU5gA==",
       "type": "package",
-      "path": "microsoft.entityframeworkcore.tools/8.0.18",
+      "path": "microsoft.entityframeworkcore.tools/8.0.15",
       "hasTools": true,
       "files": [
         ".nupkg.metadata",
@@ -2331,7 +2331,7 @@
         "Icon.png",
         "docs/PACKAGE.md",
         "lib/net8.0/_._",
-        "microsoft.entityframeworkcore.tools.8.0.18.nupkg.sha512",
+        "microsoft.entityframeworkcore.tools.8.0.15.nupkg.sha512",
         "microsoft.entityframeworkcore.tools.nuspec",
         "tools/EntityFrameworkCore.PS2.psd1",
         "tools/EntityFrameworkCore.PS2.psm1",
@@ -4215,28 +4215,28 @@
       "Microsoft.AspNetCore.OpenApi >= 8.0.8",
       "Microsoft.EntityFrameworkCore.Design >= 8.0.18",
       "Microsoft.EntityFrameworkCore.SqlServer >= 8.0.17",
-      "Microsoft.EntityFrameworkCore.Tools >= 8.*",
+      "Microsoft.EntityFrameworkCore.Tools >= 8.0.15",
       "Swashbuckle.AspNetCore >= 8.*"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Hello\\.nuget\\packages\\": {},
+    "C:\\Users\\LENOVO\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
+      "projectUniqueName": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
       "projectName": "Vpassbackend",
-      "projectPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
-      "packagesPath": "C:\\Users\\Hello\\.nuget\\packages\\",
-      "outputPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\obj\\",
+      "projectPath": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
+      "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
+      "outputPath": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Hello\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -4295,7 +4295,7 @@
             "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
             "suppressParent": "All",
             "target": "Package",
-            "version": "[8.*, )"
+            "version": "[8.0.15, )"
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",
@@ -4321,7 +4321,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.401/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

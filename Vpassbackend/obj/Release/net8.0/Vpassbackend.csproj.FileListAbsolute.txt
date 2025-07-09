@@ -1,0 +1,8 @@
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.csproj.AssemblyReference.cache
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.GeneratedMSBuildEditorConfig.editorconfig
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.AssemblyInfoInputs.cache
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.AssemblyInfo.cs
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.csproj.CoreCompileInputs.cache
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.MvcApplicationPartsAssemblyInfo.cs
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.MvcApplicationPartsAssemblyInfo.cache
+D:\NeonCoders\VehicleAppBackend\VehicleAppBackend\Vpassbackend\obj\Release\net8.0\Vpassbackend.sourcelink.json

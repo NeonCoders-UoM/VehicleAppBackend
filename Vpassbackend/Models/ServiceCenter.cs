@@ -34,8 +34,13 @@ namespace Vpassbackend.Models
         [MaxLength(20)]
         public string? Station_status { get; set; }
 
+        // Location coordinates for distance calculation
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+
         // Navigation properties
         public ICollection<Service> Services { get; set; } = new List<Service>();
         public ICollection<ServiceCenterCheckInPoint> CheckInPoints { get; set; } = new List<ServiceCenterCheckInPoint>();
+        public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

@@ -27,6 +27,9 @@ builder.Services.AddCors(options =>
 
 // Add services
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<LocationService>();
+builder.Services.AddScoped<AppointmentBookingService>();
+builder.Services.AddScoped<AppointmentManagementService>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

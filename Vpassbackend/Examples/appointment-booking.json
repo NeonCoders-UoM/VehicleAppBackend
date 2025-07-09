@@ -1,0 +1,24 @@
+{
+  "nearbyServiceCentersRequest": {
+    "latitude": 7.8731,
+    "longitude": 80.7718,
+    "serviceIds": [1, 2, 3],
+    "appointmentDate": "2025-07-15T10:00:00"
+  },
+  "appointmentBooking": {
+    "vehicleId": 1,
+    "customerId": 1,
+    "appointmentDate": "2025-07-15T10:00:00",
+    "serviceIds": [1, 2, 3],
+    "serviceCenterId": 1,
+    "latitude": 7.8731,
+    "longitude": 80.7718,
+    "description": "Regular maintenance and oil change"
+  },
+  "appointmentPayment": {
+    "appointmentId": 1,
+    "amount": 50.00,
+    "paymentMethod": "Credit Card",
+    "transactionReference": "TX123456789"
+  }
+}

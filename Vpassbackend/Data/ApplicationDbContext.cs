@@ -12,6 +12,7 @@ namespace Vpassbackend.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<AppointmentService> AppointmentServices { get; set; }
         public DbSet<BorderPoint> BorderPoints { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
@@ -21,7 +22,6 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistory { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -34,16 +34,51 @@ namespace Vpassbackend.Data
                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.Service)
-                .WithMany(s => s.Appointments)
-                .HasForeignKey(a => a.ServiceId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Customer)
                 .WithMany()
                 .HasForeignKey(a => a.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.ServiceCenter)
+                .WithMany(sc => sc.Appointments)
+                .HasForeignKey(a => a.ServiceCenterId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<AppointmentService>()
+                .HasOne(as_ => as_.Appointment)
+                .WithMany(a => a.AppointmentServices)
+                .HasForeignKey(as_ => as_.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AppointmentService>()
+                .HasOne(as_ => as_.Service)
+                .WithMany()
+                .HasForeignKey(as_ => as_.ServiceId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<PaymentLog>()
+                .HasOne(pl => pl.Appointment)
+                .WithMany(a => a.PaymentLogs)
+                .HasForeignKey(pl => pl.AppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Configure decimal properties to prevent truncation
+            modelBuilder.Entity<VehicleServiceHistory>()
+                .Property(v => v.Cost)
+                .HasColumnType("decimal(10, 2)");
+
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.EstimatedTotalCost)
+                .HasColumnType("decimal(10, 2)");
+
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.AdvancePaymentAmount)
+                .HasColumnType("decimal(10, 2)");
+
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.ActualTotalCost)
+                .HasColumnType("decimal(10, 2)");
         }
     }
 }

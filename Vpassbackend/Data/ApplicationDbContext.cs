@@ -50,7 +50,7 @@ namespace Vpassbackend.Data
                 .WithMany()
                 .HasForeignKey(a => a.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
-                
+
             // Configure ServiceCenterService relationships
             modelBuilder.Entity<ServiceCenterService>()
                 .HasOne(scs => scs.Service)
@@ -63,7 +63,7 @@ namespace Vpassbackend.Data
                 .WithMany(sc => sc.ServiceCenterServices)
                 .HasForeignKey(scs => scs.Station_id)
                 .OnDelete(DeleteBehavior.Cascade);
-                
+
             // Create a unique constraint to prevent duplicate service-center combinations
             modelBuilder.Entity<ServiceCenterService>()
                 .HasIndex(scs => new { scs.ServiceId, scs.Station_id })

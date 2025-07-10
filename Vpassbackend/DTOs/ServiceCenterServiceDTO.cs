@@ -10,7 +10,7 @@ namespace Vpassbackend.DTOs
         public decimal? CustomPrice { get; set; }
         public bool IsAvailable { get; set; }
         public string? Notes { get; set; }
-        
+
         // Include related data
         public string? ServiceName { get; set; }
         public string? ServiceDescription { get; set; }
@@ -24,14 +24,14 @@ namespace Vpassbackend.DTOs
     {
         [Required]
         public int Station_id { get; set; }
-        
+
         [Required]
         public int ServiceId { get; set; }
-        
+
         public decimal? CustomPrice { get; set; }
-        
+
         public bool IsAvailable { get; set; } = true;
-        
+
         [MaxLength(255)]
         public string? Notes { get; set; }
     }
@@ -39,9 +39,9 @@ namespace Vpassbackend.DTOs
     public class UpdateServiceCenterServiceDTO
     {
         public decimal? CustomPrice { get; set; }
-        
+
         public bool? IsAvailable { get; set; }
-        
+
         [MaxLength(255)]
         public string? Notes { get; set; }
     }

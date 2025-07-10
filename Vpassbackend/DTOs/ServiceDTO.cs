@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace Vpassbackend.DTOs
-{    public class ServiceDTO
+{
+    public class ServiceDTO
     {
         public int ServiceId { get; set; }
 
@@ -17,9 +18,9 @@ namespace Vpassbackend.DTOs
         public int? LoyaltyPoints { get; set; }
 
         public int? Station_id { get; set; }
-        
+
         public string? StationName { get; set; }
-        
+
         [MaxLength(50)]
         public string? Category { get; set; }
     }
@@ -36,7 +37,7 @@ namespace Vpassbackend.DTOs
         public decimal? BasePrice { get; set; }
 
         public int? LoyaltyPoints { get; set; }
-        
+
         [MaxLength(50)]
         public string? Category { get; set; }
     }
@@ -52,7 +53,7 @@ namespace Vpassbackend.DTOs
         public decimal? BasePrice { get; set; }
 
         public int? LoyaltyPoints { get; set; }
-        
+
         [MaxLength(50)]
         public string? Category { get; set; }
     }

@@ -145,20 +145,20 @@ namespace Vpassbackend.Data
                 context.Services.AddRange(services);
                 await context.SaveChangesAsync();
             }
-                
+
             // Add ServiceCenterService relationships if none exist
             if (!context.ServiceCenterServices.Any())
             {
                 var services = context.Services.ToList();
                 var serviceCenters = context.ServiceCenters.ToList();
-                
+
                 if (services.Count > 0 && serviceCenters.Count > 0)
                 {
                     // Get service centers
                     var cityCenter = serviceCenters.FirstOrDefault(sc => sc.Station_name == "City Center Auto Services");
                     var westSide = serviceCenters.FirstOrDefault(sc => sc.Station_name == "West Side Vehicle Repairs");
                     var highway = serviceCenters.FirstOrDefault(sc => sc.Station_name == "Highway Auto Center");
-                    
+
                     // Get services by name
                     var oilChange = services.FirstOrDefault(s => s.ServiceName == "Oil Change");
                     var tireRotation = services.FirstOrDefault(s => s.ServiceName == "Tire Rotation");
@@ -167,88 +167,97 @@ namespace Vpassbackend.Data
                     var engineTuneUp = services.FirstOrDefault(s => s.ServiceName == "Engine Tune-Up");
                     var acService = services.FirstOrDefault(s => s.ServiceName == "AC Service");
                     var transmissionFlush = services.FirstOrDefault(s => s.ServiceName == "Transmission Flush");
-                    
+
                     // Assign services to City Center
                     if (cityCenter != null)
                     {
                         if (oilChange != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = cityCenter, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = cityCenter,
                                 Service = oilChange,
                                 IsAvailable = true,
                                 CustomPrice = 45.99m,
-                                Notes = "Our most popular service" 
+                                Notes = "Our most popular service"
                             });
-                            
+
                         if (tireRotation != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = cityCenter, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = cityCenter,
                                 Service = tireRotation,
-                                IsAvailable = true 
+                                IsAvailable = true
                             });
-                            
+
                         if (inspection != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = cityCenter, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = cityCenter,
                                 Service = inspection,
                                 IsAvailable = true,
                                 CustomPrice = 79.99m
                             });
                     }
-                    
+
                     // Assign services to West Side
                     if (westSide != null)
                     {
                         if (brakeReplacement != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = westSide, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = westSide,
                                 Service = brakeReplacement,
-                                IsAvailable = true 
+                                IsAvailable = true
                             });
-                            
+
                         if (engineTuneUp != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = westSide, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = westSide,
                                 Service = engineTuneUp,
                                 IsAvailable = true,
                                 Notes = "Speciality service with performance guarantee"
                             });
-                            
+
                         if (oilChange != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = westSide, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = westSide,
                                 Service = oilChange,
                                 IsAvailable = true,
                                 CustomPrice = 54.99m
                             });
                     }
-                    
+
                     // Assign services to Highway
                     if (highway != null)
                     {
                         if (acService != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = highway, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = highway,
                                 Service = acService,
-                                IsAvailable = true 
+                                IsAvailable = true
                             });
-                            
+
                         if (transmissionFlush != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = highway, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = highway,
                                 Service = transmissionFlush,
-                                IsAvailable = true 
+                                IsAvailable = true
                             });
-                            
+
                         if (inspection != null)
-                            context.ServiceCenterServices.Add(new ServiceCenterService { 
-                                ServiceCenter = highway, 
+                            context.ServiceCenterServices.Add(new ServiceCenterService
+                            {
+                                ServiceCenter = highway,
                                 Service = inspection,
                                 IsAvailable = false,
                                 Notes = "Temporarily unavailable due to equipment maintenance"
                             });
                     }
-                    
+
                     await context.SaveChangesAsync();
                 }
             }

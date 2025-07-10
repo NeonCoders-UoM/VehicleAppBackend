@@ -68,12 +68,12 @@ namespace Vpassbackend.Controllers
         public async Task<ActionResult<IEnumerable<ServiceDTO>>> GetServicesByServiceCenter(int stationId)
         {
             var serviceCenter = await _context.ServiceCenters.FindAsync(stationId);
-            
+
             if (serviceCenter == null)
             {
                 return NotFound("Service center not found");
             }
-            
+
             var services = await _context.ServiceCenterServices
                 .Include(scs => scs.Service)
                 .Where(scs => scs.Station_id == stationId)
@@ -148,7 +148,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> UpdateService(int id, UpdateServiceDTO updateServiceDTO)
         {
             var service = await _context.Services.FindAsync(id);
-            
+
             if (service == null)
             {
                 return NotFound();
@@ -166,7 +166,7 @@ namespace Vpassbackend.Controllers
 
             if (updateServiceDTO.LoyaltyPoints.HasValue)
                 service.LoyaltyPoints = updateServiceDTO.LoyaltyPoints;
-                
+
             if (updateServiceDTO.Category != null)
                 service.Category = updateServiceDTO.Category;
 
@@ -195,7 +195,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> DeleteService(int id)
         {
             var service = await _context.Services.FindAsync(id);
-            
+
             if (service == null)
             {
                 return NotFound();
@@ -207,7 +207,7 @@ namespace Vpassbackend.Controllers
             {
                 return BadRequest("Cannot delete service as it has associated appointments");
             }
-            
+
             // Check if this service is offered by any service centers
             bool isOfferedByCenters = await _context.ServiceCenterServices.AnyAsync(scs => scs.ServiceId == id);
             if (isOfferedByCenters)

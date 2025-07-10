@@ -31,6 +31,10 @@ namespace Vpassbackend.Models
 
         public int LoyaltyPoints { get; set; }
 
+        public bool IsEmailVerified { get; set; } = false;
+        public string? OtpCode { get; set; }
+        public DateTime? OtpExpiry { get; set; }
+
 
     }
 }

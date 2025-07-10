@@ -1,10 +1,8 @@
 namespace Vpassbackend.DTOs
 {
-    public class AddServiceHistoryDTO
+    public class UpdateServiceHistoryDTO
     {
-        // VehicleId is set from the URL path parameter
-        public int VehicleId { get; set; }
-        
+        public int ServiceHistoryId { get; set; }
         public string ServiceType { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Cost { get; set; }
@@ -13,7 +11,7 @@ namespace Vpassbackend.DTOs
         public DateTime ServiceDate { get; set; }
         public int? Mileage { get; set; }
         
-        // For unverified services from external service centers
+        // For unverified services
         public string? ExternalServiceCenterName { get; set; }
         
         // Base64 string for receipt document (if any)

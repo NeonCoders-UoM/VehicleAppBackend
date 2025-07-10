@@ -37,5 +37,6 @@ namespace Vpassbackend.Models
         public ICollection<Document> Documents { get; set; } = new List<Document>();
         public ICollection<BorderPoint> BorderPoints { get; set; } = new List<BorderPoint>();
         public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+        public ICollection<VehicleServiceHistory> ServiceHistory { get; set; } = new List<VehicleServiceHistory>();
     }
 }

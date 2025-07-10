@@ -147,6 +147,12 @@ namespace Vpassbackend.Controllers
                 return BadRequest(new { message = "Vehicle with this registration number already exists" });
             }
 
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
+            {
+                return NotFound(new { message = "Customer not found" });
+            }
+
             var vehicle = new Vehicle
             {
                 RegistrationNumber = dto.RegistrationNumber,
@@ -157,7 +163,7 @@ namespace Vpassbackend.Controllers
                 Mileage = dto.Mileage,
                 Fuel = dto.Fuel,
                 Year = dto.Year,
-                Customer = await _context.Customers.FindAsync(id)
+                Customer = customer
             };
 
             _context.Vehicles.Add(vehicle);
@@ -283,11 +289,11 @@ namespace Vpassbackend.Controllers
                 {
                     RegistrationNumber = dto.RegistrationNumber,
                     CustomerId = customer.CustomerId,
-                    Brand = dto.Brand,
-                    Model = dto.Model,
-                    ChassisNumber = dto.ChassisNumber,
+                    Brand = dto.Brand ?? "",
+                    Model = dto.Model ?? "",
+                    ChassisNumber = dto.ChassisNumber ?? "",
                     Mileage = dto.Mileage,
-                    Fuel = dto.Fuel,
+                    Fuel = dto.Fuel ?? "",
                     Year = dto.Year,
                     Customer = customer
                 };

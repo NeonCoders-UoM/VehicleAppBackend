@@ -4,8 +4,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Diagnostics;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddEventSourceLogger();
 
 // Configure EF Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -61,7 +69,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 });
 
 // Add controller services & Swagger
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization options if needed
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -112,14 +126,34 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure HTTP pipeline
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    // Global exception handling for production
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            context.Response.ContentType = "application/json";
 
-    // Add a redirect from root to Swagger UI
-    app.MapGet("/", () => Results.Redirect("/swagger"));
+            var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+            var exception = exceptionHandlerPathFeature?.Error;
+
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(exception, "Unhandled exception");
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                StatusCode = context.Response.StatusCode,
+                Message = "An internal server error occurred. Please try again later."
+            });
+        });
+    });
 }
 
 app.UseHttpsRedirection();
@@ -130,6 +164,21 @@ app.UseCors("AllowAnyOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Enable Swagger UI
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Vehicle Passport API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
+
 app.MapControllers();
+
+// Log that the application is starting
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Starting application on http://localhost:5039 and https://localhost:7005");
 
 app.Run();

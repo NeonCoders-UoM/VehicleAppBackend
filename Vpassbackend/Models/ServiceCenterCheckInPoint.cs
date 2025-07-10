@@ -6,15 +6,15 @@ namespace Vpassbackend.Models
     public class ServiceCenterCheckInPoint
     {
         [Key]
-        public int StationId { get; set; }
+        public int CheckInPointId { get; set; }
 
         [ForeignKey("ServiceCenter")]
-        public int Station_id { get; set; }
+        public int ServiceCenterId { get; set; }
 
         [MaxLength(50)]
         public string? Name { get; set; }
 
         // Navigation properties
-        public ServiceCenter ServiceCenter { get; set; }
+        public required ServiceCenter ServiceCenter { get; set; }
     }
 }

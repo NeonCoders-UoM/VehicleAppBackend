@@ -1,0 +1,362 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Vpassbackend.Data;
+using Vpassbackend.DTOs;
+using Vpassbackend.Models;
+
+namespace Vpassbackend.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class ServiceCentersController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public ServiceCentersController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/ServiceCenters
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetServiceCenters()
+        {
+            var serviceCenters = await _context.ServiceCenters
+                .Select(sc => new ServiceCenterDTO
+                {
+                    Station_id = sc.Station_id,
+                    OwnerName = sc.OwnerName,
+                    VATNumber = sc.VATNumber,
+                    RegisterationNumber = sc.RegisterationNumber,
+                    Station_name = sc.Station_name,
+                    Email = sc.Email,
+                    Telephone = sc.Telephone,
+                    Address = sc.Address,
+                    Station_status = sc.Station_status
+                })
+                .ToListAsync();
+
+            return serviceCenters;
+        }
+
+        // GET: api/ServiceCenters/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ServiceCenterDTO>> GetServiceCenter(int id)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+
+            if (serviceCenter == null)
+            {
+                return NotFound();
+            }
+
+            var serviceCenterDTO = new ServiceCenterDTO
+            {
+                Station_id = serviceCenter.Station_id,
+                OwnerName = serviceCenter.OwnerName,
+                VATNumber = serviceCenter.VATNumber,
+                RegisterationNumber = serviceCenter.RegisterationNumber,
+                Station_name = serviceCenter.Station_name,
+                Email = serviceCenter.Email,
+                Telephone = serviceCenter.Telephone,
+                Address = serviceCenter.Address,
+                Station_status = serviceCenter.Station_status
+            };
+
+            return serviceCenterDTO;
+        }
+
+        // GET: api/ServiceCenters/status/active
+        [HttpGet("status/{status}")]
+        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetServiceCentersByStatus(string status)
+        {
+            var serviceCenters = await _context.ServiceCenters
+                .Where(sc => sc.Station_status != null && sc.Station_status.ToLower() == status.ToLower())
+                .Select(sc => new ServiceCenterDTO
+                {
+                    Station_id = sc.Station_id,
+                    OwnerName = sc.OwnerName,
+                    VATNumber = sc.VATNumber,
+                    RegisterationNumber = sc.RegisterationNumber,
+                    Station_name = sc.Station_name,
+                    Email = sc.Email,
+                    Telephone = sc.Telephone,
+                    Address = sc.Address,
+                    Station_status = sc.Station_status
+                })
+                .ToListAsync();
+
+            return serviceCenters;
+        }
+
+        // POST: api/ServiceCenters
+        [HttpPost]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<ActionResult<ServiceCenterDTO>> CreateServiceCenter(CreateServiceCenterDTO createServiceCenterDTO)
+        {
+            var serviceCenter = new ServiceCenter
+            {
+                OwnerName = createServiceCenterDTO.OwnerName,
+                VATNumber = createServiceCenterDTO.VATNumber,
+                RegisterationNumber = createServiceCenterDTO.RegisterationNumber,
+                Station_name = createServiceCenterDTO.Station_name,
+                Email = createServiceCenterDTO.Email,
+                Telephone = createServiceCenterDTO.Telephone,
+                Address = createServiceCenterDTO.Address,
+                Station_status = createServiceCenterDTO.Station_status
+            };
+
+            _context.ServiceCenters.Add(serviceCenter);
+            await _context.SaveChangesAsync();
+
+            var serviceCenterDTO = new ServiceCenterDTO
+            {
+                Station_id = serviceCenter.Station_id,
+                OwnerName = serviceCenter.OwnerName,
+                VATNumber = serviceCenter.VATNumber,
+                RegisterationNumber = serviceCenter.RegisterationNumber,
+                Station_name = serviceCenter.Station_name,
+                Email = serviceCenter.Email,
+                Telephone = serviceCenter.Telephone,
+                Address = serviceCenter.Address,
+                Station_status = serviceCenter.Station_status
+            };
+
+            return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.Station_id }, serviceCenterDTO);
+        }
+
+        // PUT: api/ServiceCenters/5
+        [HttpPut("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> UpdateServiceCenter(int id, UpdateServiceCenterDTO updateServiceCenterDTO)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+            if (serviceCenter == null)
+            {
+                return NotFound();
+            }
+
+            // Update only the provided fields
+            if (updateServiceCenterDTO.OwnerName != null)
+                serviceCenter.OwnerName = updateServiceCenterDTO.OwnerName;
+
+            if (updateServiceCenterDTO.VATNumber != null)
+                serviceCenter.VATNumber = updateServiceCenterDTO.VATNumber;
+
+            if (updateServiceCenterDTO.RegisterationNumber != null)
+                serviceCenter.RegisterationNumber = updateServiceCenterDTO.RegisterationNumber;
+
+            if (updateServiceCenterDTO.Station_name != null)
+                serviceCenter.Station_name = updateServiceCenterDTO.Station_name;
+
+            if (updateServiceCenterDTO.Email != null)
+                serviceCenter.Email = updateServiceCenterDTO.Email;
+
+            if (updateServiceCenterDTO.Telephone != null)
+                serviceCenter.Telephone = updateServiceCenterDTO.Telephone;
+
+            if (updateServiceCenterDTO.Address != null)
+                serviceCenter.Address = updateServiceCenterDTO.Address;
+
+            if (updateServiceCenterDTO.Station_status != null)
+                serviceCenter.Station_status = updateServiceCenterDTO.Station_status;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ServiceCenterExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PATCH: api/ServiceCenters/5/status
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> UpdateServiceCenterStatus(int id, [FromBody] string status)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+            if (serviceCenter == null)
+            {
+                return NotFound();
+            }
+
+            serviceCenter.Station_status = status;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ServiceCenterExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // DELETE: api/ServiceCenters/5
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DeleteServiceCenter(int id)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+            if (serviceCenter == null)
+            {
+                return NotFound();
+            }
+
+            _context.ServiceCenters.Remove(serviceCenter);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        // GET: api/ServiceCenters/{id}/Services
+        [HttpGet("{id}/Services")]
+        public async Task<ActionResult<IEnumerable<ServiceCenterServiceDTO>>> GetServiceCenterServices(int id)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+            if (serviceCenter == null)
+            {
+                return NotFound("Service center not found");
+            }
+
+            var serviceCenterServices = await _context.ServiceCenterServices
+                .Include(scs => scs.Service)
+                .Include(scs => scs.ServiceCenter)
+                .Where(scs => scs.Station_id == id)
+                .Select(scs => new ServiceCenterServiceDTO
+                {
+                    ServiceCenterServiceId = scs.ServiceCenterServiceId,
+                    Station_id = scs.Station_id,
+                    ServiceId = scs.ServiceId,
+                    CustomPrice = scs.CustomPrice,
+                    IsAvailable = scs.IsAvailable,
+                    Notes = scs.Notes,
+                    ServiceName = scs.Service.ServiceName,
+                    ServiceDescription = scs.Service.Description,
+                    BasePrice = scs.Service.BasePrice,
+                    LoyaltyPoints = scs.Service.LoyaltyPoints,
+                    Category = scs.Service.Category,
+                    StationName = scs.ServiceCenter.Station_name
+                })
+                .ToListAsync();
+
+            return serviceCenterServices;
+        }
+
+        // POST: api/ServiceCenters/{id}/Services
+        [HttpPost("{id}/Services")]
+        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin")]
+        public async Task<ActionResult<ServiceCenterServiceDTO>> AddServiceToServiceCenter(int id, CreateServiceCenterServiceDTO createDto)
+        {
+            var serviceCenter = await _context.ServiceCenters.FindAsync(id);
+            if (serviceCenter == null)
+            {
+                return NotFound("Service center not found");
+            }
+
+            // Override the station_id to ensure it matches the URL parameter
+            createDto.Station_id = id;
+
+            var service = await _context.Services.FindAsync(createDto.ServiceId);
+            if (service == null)
+            {
+                return BadRequest("Invalid service ID");
+            }
+
+            // Check if the relation already exists
+            bool alreadyExists = await _context.ServiceCenterServices
+                .AnyAsync(scs => scs.ServiceId == createDto.ServiceId && scs.Station_id == id);
+
+            if (alreadyExists)
+            {
+                return BadRequest("This service is already offered by this service center");
+            }
+
+            var serviceCenterService = new ServiceCenterService
+            {
+                Station_id = id,
+                ServiceId = createDto.ServiceId,
+                CustomPrice = createDto.CustomPrice,
+                IsAvailable = createDto.IsAvailable,
+                Notes = createDto.Notes,
+                ServiceCenter = serviceCenter,
+                Service = service
+            };
+
+            _context.ServiceCenterServices.Add(serviceCenterService);
+            await _context.SaveChangesAsync();
+
+            var resultDto = new ServiceCenterServiceDTO
+            {
+                ServiceCenterServiceId = serviceCenterService.ServiceCenterServiceId,
+                Station_id = serviceCenterService.Station_id,
+                ServiceId = serviceCenterService.ServiceId,
+                CustomPrice = serviceCenterService.CustomPrice,
+                IsAvailable = serviceCenterService.IsAvailable,
+                Notes = serviceCenterService.Notes,
+                ServiceName = service.ServiceName,
+                ServiceDescription = service.Description,
+                BasePrice = service.BasePrice,
+                LoyaltyPoints = service.LoyaltyPoints,
+                Category = service.Category,
+                StationName = serviceCenter.Station_name
+            };
+
+            return CreatedAtAction("GetServiceCenterService",
+                new { id = serviceCenterService.ServiceCenterServiceId, controller = "ServiceCenterServices" }, resultDto);
+        }
+
+        // DELETE: api/ServiceCenters/{stationId}/Services/{serviceId}
+        [HttpDelete("{stationId}/Services/{serviceId}")]
+        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin")]
+        public async Task<IActionResult> RemoveServiceFromServiceCenter(int stationId, int serviceId)
+        {
+            var serviceCenterService = await _context.ServiceCenterServices
+                .FirstOrDefaultAsync(scs => scs.ServiceId == serviceId && scs.Station_id == stationId);
+
+            if (serviceCenterService == null)
+            {
+                return NotFound("Service not found in this service center");
+            }
+
+            // Check if this service has any appointments
+            bool hasAppointments = await _context.Appointments.AnyAsync(a => a.ServiceId == serviceId);
+            if (hasAppointments)
+            {
+                return BadRequest("Cannot remove service as it has associated appointments");
+            }
+
+            _context.ServiceCenterServices.Remove(serviceCenterService);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool ServiceCenterExists(int id)
+        {
+            return _context.ServiceCenters.Any(e => e.Station_id == id);
+        }
+    }
+}

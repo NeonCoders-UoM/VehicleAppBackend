@@ -11,11 +11,11 @@ namespace Vpassbackend.Data
             if (!context.UserRoles.Any())
             {
                 context.UserRoles.AddRange(
-                new UserRole { UserRoleName = "SuperAdmin" },
-                new UserRole { UserRoleName = "Admin" },
-                new UserRole { UserRoleName = "ServiceCenterAdmin" },
-                new UserRole { UserRoleName = "Cashier" },
-                new UserRole { UserRoleName = "DataOperator" }
+                new UserRole { UserRoleId = 1, UserRoleName = "SuperAdmin" },
+                new UserRole { UserRoleId = 2, UserRoleName = "Admin" },
+                new UserRole { UserRoleId = 3, UserRoleName = "ServiceCenterAdmin" },
+                new UserRole { UserRoleId = 4, UserRoleName = "Cashier" },
+                new UserRole { UserRoleId = 5, UserRoleName = "DataOperator" }
             );
                 await context.SaveChangesAsync();
             }
@@ -23,14 +23,14 @@ namespace Vpassbackend.Data
             if (!context.Users.Any())
             {
                 // Get the SuperAdmin role that was just created
-                var superAdminRole = context.UserRoles.First(r => r.UserRoleName == "SuperAdmin");
+                // var superAdminRole = context.UserRoles.First(r => r.UserRoleName == "SuperAdmin");
 
                 var superAdmin = new User
                 {
                     FirstName = "Super",
                     LastName = "Admin",
                     Email = "superadmin@example.com",
-                    UserRoleId = superAdminRole.UserRoleId
+                    UserRoleId = 1 // SuperAdmin
                 };
                 superAdmin.Password = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123");
                 context.Users.Add(superAdmin);

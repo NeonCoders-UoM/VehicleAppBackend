@@ -15,11 +15,13 @@ namespace Vpassbackend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AuthService _tokenService;
+        private readonly IEmailService _emailService;
 
-        public AuthController(ApplicationDbContext context, AuthService tokenService)
+        public AuthController(ApplicationDbContext context, AuthService tokenService, IEmailService emailService)
         {
             _context = context;
             _tokenService = tokenService;
+            _emailService = emailService;
         }
 
         [HttpPost("login")]
@@ -40,20 +42,32 @@ namespace Vpassbackend.Controllers
             var customer = await _context.Customers
                 .FirstOrDefaultAsync(c => c.Email == dto.Email);
 
-            if (customer == null || !BCrypt.Net.BCrypt.Verify(dto.Password, customer.Password))
+            if (customer == null)
                 return Unauthorized("Invalid credentials");
 
-            // Customers don’t have roles — so your TokenService needs an overload for them
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, customer.Password))
+                return Unauthorized("Invalid credentials");
+
+            if (!customer.IsEmailVerified)
+                return Unauthorized("Email not verified. Please verify your email first.");
+
             var token = _tokenService.CreateTokenForCustomer(customer);
+
             return Ok(new { token });
         }
 
 
+
         [HttpPost("register-customer")]
+        [AllowAnonymous]
         public async Task<IActionResult> RegisterCustomer(CustomerRegisterDto dto)
         {
             if (_context.Customers.Any(c => c.Email == dto.Email))
                 return BadRequest("Email already registered.");
+
+            // Generate random 6-digit OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(10);
 
             var customer = new Customer
             {
@@ -63,13 +77,76 @@ namespace Vpassbackend.Controllers
                 Address = dto.Address,
                 PhoneNumber = dto.PhoneNumber,
                 NIC = dto.NIC,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                IsEmailVerified = false,
+                OtpCode = otp,
+                OtpExpiry = otpExpiry
             };
 
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
 
-            return Ok("Customer registered.");
+            // Send OTP email
+            await _emailService.SendEmailAsync(
+                customer.Email,
+                "Your OTP Code",
+                $"Your OTP code is {otp}. It expires in 10 minutes."
+            );
+
+            return Ok("Customer registered. Please check your email for the OTP to verify your account.");
         }
+
+
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto dto)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            if (customer == null)
+                return BadRequest("Customer not found.");
+
+            if (customer.IsEmailVerified)
+                return BadRequest("Email already verified.");
+
+            if (customer.OtpCode != dto.Otp)  // ✅ Correct variable
+                return BadRequest("Invalid OTP.");
+
+            if (customer.OtpExpiry < DateTime.UtcNow)
+                return BadRequest("OTP expired.");
+
+            customer.IsEmailVerified = true;
+            customer.OtpCode = null;
+            customer.OtpExpiry = null;
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Email verified successfully!");
+        }
+
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] string email)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == email);
+            if (customer == null)
+                return BadRequest("Customer not found.");
+
+            if (customer.IsEmailVerified)
+                return BadRequest("Email already verified.");
+
+            var otp = new Random().Next(100000, 999999).ToString();
+            customer.OtpCode = otp;
+            customer.OtpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendEmailAsync(
+                customer.Email,
+                "Your new OTP",
+                $"<p>Your new OTP is: <strong>{otp}</strong></p>"
+            );
+
+            return Ok("OTP resent successfully.");
+        }
+
+
     }
 }

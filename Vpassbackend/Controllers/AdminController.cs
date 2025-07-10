@@ -19,7 +19,7 @@ namespace Vpassbackend.Controllers
             _context = context;
         }
 
-        [HttpPost("user-register")]
+        [HttpPost("User-register")]
         public async Task<IActionResult> CreateUser(UserRegisterDto dto)
         {
             if (_context.Users.Any(u => u.Email == dto.Email))

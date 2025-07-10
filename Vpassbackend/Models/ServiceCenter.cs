@@ -35,7 +35,9 @@ namespace Vpassbackend.Models
         public string? Station_status { get; set; }
 
         // Navigation properties
-        public ICollection<Service> Services { get; set; } = new List<Service>();
         public ICollection<ServiceCenterCheckInPoint> CheckInPoints { get; set; } = new List<ServiceCenterCheckInPoint>();
+        
+        // Many-to-many relationship with Services through ServiceCenterService
+        public ICollection<ServiceCenterService> ServiceCenterServices { get; set; } = new List<ServiceCenterService>();
     }
 }

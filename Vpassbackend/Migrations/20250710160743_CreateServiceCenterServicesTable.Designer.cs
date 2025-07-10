@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vpassbackend.Data;
 
@@ -11,9 +12,11 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250710160743_CreateServiceCenterServicesTable")]
+    partial class CreateServiceCenterServicesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,9 +36,6 @@ namespace Vpassbackend.Migrations
                     b.Property<DateTime?>("AppointmentDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("AppointmentPrice")
-                        .HasColumnType("decimal(10, 2)");
-
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
@@ -44,9 +44,6 @@ namespace Vpassbackend.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("ServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Station_id")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -65,8 +62,6 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceId");
-
-                    b.HasIndex("Station_id");
 
                     b.HasIndex("VehicleId");
 
@@ -481,12 +476,6 @@ namespace Vpassbackend.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
-                        .WithMany()
-                        .HasForeignKey("Station_id")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
                         .WithMany("Appointments")
                         .HasForeignKey("VehicleId")
@@ -496,8 +485,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Service");
-
-                    b.Navigation("ServiceCenter");
 
                     b.Navigation("Vehicle");
                 });

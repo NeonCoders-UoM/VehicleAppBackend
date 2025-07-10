@@ -13,6 +13,9 @@ namespace Vpassbackend.Models
 
         [ForeignKey("Service")]
         public int ServiceId { get; set; }
+        
+        [ForeignKey("ServiceCenter")]
+        public int Station_id { get; set; }
 
         [ForeignKey("Customer")]
         public int CustomerId { get; set; }
@@ -31,6 +34,11 @@ namespace Vpassbackend.Models
         // Navigation properties
         public Vehicle Vehicle { get; set; }
         public Service Service { get; set; }
+        public ServiceCenter ServiceCenter { get; set; }
         public Customer Customer { get; set; }
+        
+        // Calculated price at the time of appointment
+        [Column(TypeName = "decimal(10, 2)")]
+        public decimal? AppointmentPrice { get; set; }
     }
 }

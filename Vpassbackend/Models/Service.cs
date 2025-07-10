@@ -19,12 +19,15 @@ namespace Vpassbackend.Models
         public decimal? BasePrice { get; set; }
 
         public int? LoyaltyPoints { get; set; }
+        
+        // Service category or type could be added here
+        [MaxLength(50)]
+        public string? Category { get; set; }
 
         // Navigation properties
-        [ForeignKey("ServiceCenter")]
-        public int Station_id { get; set; }
-        public required ServiceCenter ServiceCenter { get; set; }
-
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+        
+        // Many-to-many relationship with ServiceCenters through ServiceCenterService
+        public ICollection<ServiceCenterService> ServiceCenterServices { get; set; } = new List<ServiceCenterService>();
     }
 }

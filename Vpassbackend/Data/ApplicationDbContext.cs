@@ -19,6 +19,7 @@ namespace Vpassbackend.Data
         public DbSet<Service> Services { get; set; }
         public DbSet<ServiceCenter> ServiceCenters { get; set; }
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
+        public DbSet<ServiceCenterService> ServiceCenterServices { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,10 +40,34 @@ namespace Vpassbackend.Data
                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.ServiceCenter)
+                .WithMany()
+                .HasForeignKey(a => a.Station_id)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Customer)
                 .WithMany()
                 .HasForeignKey(a => a.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+                
+            // Configure ServiceCenterService relationships
+            modelBuilder.Entity<ServiceCenterService>()
+                .HasOne(scs => scs.Service)
+                .WithMany(s => s.ServiceCenterServices)
+                .HasForeignKey(scs => scs.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ServiceCenterService>()
+                .HasOne(scs => scs.ServiceCenter)
+                .WithMany(sc => sc.ServiceCenterServices)
+                .HasForeignKey(scs => scs.Station_id)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            // Create a unique constraint to prevent duplicate service-center combinations
+            modelBuilder.Entity<ServiceCenterService>()
+                .HasIndex(scs => new { scs.ServiceId, scs.Station_id })
+                .IsUnique();
         }
     }
 }

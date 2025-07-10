@@ -3,10 +3,12 @@
 ## Endpoints
 
 ### 1. Get All Service History for a Vehicle
+
 - **URL**: `/api/Vehicles/{vehicleId}/ServiceHistory`
 - **Method**: `GET`
 - **Description**: Retrieves all service history records for a specific vehicle
 - **Example Response**:
+
 ```json
 [
   {
@@ -45,10 +47,12 @@
 ```
 
 ### 2. Get Specific Service History Record
+
 - **URL**: `/api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}`
 - **Method**: `GET`
 - **Description**: Retrieves a specific service history record for a vehicle
 - **Example Response**:
+
 ```json
 {
   "serviceHistoryId": 1,
@@ -69,10 +73,12 @@
 ```
 
 ### 3. Add New Service History
+
 - **URL**: `/api/Vehicles/{vehicleId}/ServiceHistory`
 - **Method**: `POST`
 - **Description**: Adds a new service history record for a vehicle
 - **Example Request Body** (Verified Service):
+
 ```json
 {
   "serviceType": "Oil Change",
@@ -84,7 +90,9 @@
   "mileage": 25000
 }
 ```
+
 - **Example Request Body** (Unverified Service):
+
 ```json
 {
   "serviceType": "Oil Change",
@@ -97,10 +105,12 @@
 ```
 
 ### 4. Update Service History
+
 - **URL**: `/api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}`
 - **Method**: `PUT`
 - **Description**: Updates an existing service history record
 - **Example Request Body**:
+
 ```json
 {
   "serviceHistoryId": 1,
@@ -115,6 +125,7 @@
 ```
 
 ### 5. Delete Service History
+
 - **URL**: `/api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}`
 - **Method**: `DELETE`
 - **Description**: Deletes a service history record

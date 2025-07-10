@@ -10,10 +10,10 @@ namespace Vpassbackend.DTOs
         public int? ServicedByUserId { get; set; }
         public DateTime ServiceDate { get; set; }
         public int? Mileage { get; set; }
-        
+
         // For unverified services
         public string? ExternalServiceCenterName { get; set; }
-        
+
         // Base64 string for receipt document (if any)
         public string? ReceiptDocument { get; set; }
     }

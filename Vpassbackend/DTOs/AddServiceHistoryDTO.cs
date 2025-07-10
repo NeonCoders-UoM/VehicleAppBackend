@@ -4,7 +4,7 @@ namespace Vpassbackend.DTOs
     {
         // VehicleId is set from the URL path parameter
         public int VehicleId { get; set; }
-        
+
         public string ServiceType { get; set; } = string.Empty;
         public string? Description { get; set; }
         public decimal Cost { get; set; }
@@ -12,10 +12,10 @@ namespace Vpassbackend.DTOs
         public int? ServicedByUserId { get; set; }
         public DateTime ServiceDate { get; set; }
         public int? Mileage { get; set; }
-        
+
         // For unverified services from external service centers
         public string? ExternalServiceCenterName { get; set; }
-        
+
         // Base64 string for receipt document (if any)
         public string? ReceiptDocument { get; set; }
     }

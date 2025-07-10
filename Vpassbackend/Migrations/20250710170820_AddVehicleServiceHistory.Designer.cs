@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vpassbackend.Data;
 
@@ -11,9 +12,11 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250710170820_AddVehicleServiceHistory")]
+    partial class AddVehicleServiceHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -475,13 +478,6 @@ namespace Vpassbackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceHistoryId"));
 
-                    b.Property<decimal>("Cost")
-                        .HasColumnType("decimal(10, 2)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("ExternalServiceCenterName")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -492,6 +488,10 @@ namespace Vpassbackend.Migrations
                     b.Property<int?>("Mileage")
                         .HasColumnType("int");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("ReceiptDocumentPath")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -499,15 +499,13 @@ namespace Vpassbackend.Migrations
                     b.Property<int?>("ServiceCenterId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("ServiceCost")
+                        .HasColumnType("decimal(10, 2)");
+
                     b.Property<DateTime>("ServiceDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ServiceType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("ServicedByUserId")
+                    b.Property<int>("ServiceId")
                         .HasColumnType("int");
 
                     b.Property<int>("VehicleId")
@@ -517,7 +515,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("ServiceCenterId");
 
-                    b.HasIndex("ServicedByUserId");
+                    b.HasIndex("ServiceId");
 
                     b.HasIndex("VehicleId");
 
@@ -662,10 +660,11 @@ namespace Vpassbackend.Migrations
                         .HasForeignKey("ServiceCenterId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Vpassbackend.Models.User", "ServicedByUser")
+                    b.HasOne("Vpassbackend.Models.Service", "Service")
                         .WithMany()
-                        .HasForeignKey("ServicedByUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
                         .WithMany("ServiceHistory")
@@ -673,9 +672,9 @@ namespace Vpassbackend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ServiceCenter");
+                    b.Navigation("Service");
 
-                    b.Navigation("ServicedByUser");
+                    b.Navigation("ServiceCenter");
 
                     b.Navigation("Vehicle");
                 });

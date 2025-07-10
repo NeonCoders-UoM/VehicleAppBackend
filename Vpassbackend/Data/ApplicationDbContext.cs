@@ -21,6 +21,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
         public DbSet<ServiceCenterService> ServiceCenterServices { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,6 +69,25 @@ namespace Vpassbackend.Data
             modelBuilder.Entity<ServiceCenterService>()
                 .HasIndex(scs => new { scs.ServiceId, scs.Station_id })
                 .IsUnique();
+
+            // Configure VehicleServiceHistory relationships
+            modelBuilder.Entity<VehicleServiceHistory>()
+                .HasOne(vsh => vsh.Vehicle)
+                .WithMany(v => v.ServiceHistory)
+                .HasForeignKey(vsh => vsh.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VehicleServiceHistory>()
+                .HasOne(vsh => vsh.ServiceCenter)
+                .WithMany()
+                .HasForeignKey(vsh => vsh.ServiceCenterId)
+                .OnDelete(DeleteBehavior.NoAction);
+                
+            modelBuilder.Entity<VehicleServiceHistory>()
+                .HasOne(vsh => vsh.ServicedByUser)
+                .WithMany()
+                .HasForeignKey(vsh => vsh.ServicedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

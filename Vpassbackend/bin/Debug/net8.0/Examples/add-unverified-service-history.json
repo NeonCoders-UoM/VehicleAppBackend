@@ -1,0 +1,8 @@
+{
+  "serviceType": "Oil Change",
+  "description": "Oil change at external service provider",
+  "cost": 39.99,
+  "serviceDate": "2025-07-01T14:00:00",
+  "mileage": 24500,
+  "externalServiceCenterName": "QuickLube Auto Service"
+}

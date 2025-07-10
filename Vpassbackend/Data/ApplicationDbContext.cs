@@ -20,6 +20,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenter> ServiceCenters { get; set; }
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
         public DbSet<ServiceCenterService> ServiceCenterServices { get; set; }
+        public DbSet<ServiceReminder> ServiceReminders { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
 
@@ -82,12 +83,25 @@ namespace Vpassbackend.Data
                 .WithMany()
                 .HasForeignKey(vsh => vsh.ServiceCenterId)
                 .OnDelete(DeleteBehavior.NoAction);
-                
+
             modelBuilder.Entity<VehicleServiceHistory>()
                 .HasOne(vsh => vsh.ServicedByUser)
                 .WithMany()
                 .HasForeignKey(vsh => vsh.ServicedByUserId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // Configure ServiceReminder relationships
+            modelBuilder.Entity<ServiceReminder>()
+                .HasOne(sr => sr.Vehicle)
+                .WithMany(v => v.ServiceReminders)
+                .HasForeignKey(sr => sr.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ServiceReminder>()
+                .HasOne(sr => sr.Service)
+                .WithMany(s => s.ServiceReminders)
+                .HasForeignKey(sr => sr.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

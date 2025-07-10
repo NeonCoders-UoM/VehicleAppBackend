@@ -7,19 +7,20 @@ using Vpassbackend.Models;
 namespace Vpassbackend.Controllers
 {
     [ApiController]
-    public class VehiclesController : ControllerBase
+    [Route("api/[controller]")]
+    public class VehicleServiceHistoryController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
 
-        public VehiclesController(ApplicationDbContext context, IWebHostEnvironment environment)
+        public VehicleServiceHistoryController(ApplicationDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
         }
 
-        // GET: api/Vehicles/{vehicleId}/ServiceHistory
-        [HttpGet("api/Vehicles/{vehicleId}/ServiceHistory")]
+        // GET: api/VehicleServiceHistory/Vehicle/{vehicleId}
+        [HttpGet("Vehicle/{vehicleId}")]
         public async Task<ActionResult<IEnumerable<ServiceHistoryDTO>>> GetVehicleServiceHistory(int vehicleId)
         {
             var vehicle = await _context.Vehicles
@@ -40,12 +41,12 @@ namespace Vpassbackend.Controllers
                 VehicleId = sh.VehicleId,
                 ServiceType = sh.ServiceType,
                 Description = sh.Description,
-                Cost = sh.Cost,
                 ServiceCenterId = sh.ServiceCenterId,
                 ServicedByUserId = sh.ServicedByUserId,
                 ServiceCenterName = sh.ServiceCenter?.Station_name,
                 ServicedByUserName = sh.ServicedByUser != null ? $"{sh.ServicedByUser.FirstName} {sh.ServicedByUser.LastName}" : null,
                 ServiceDate = sh.ServiceDate,
+                Cost = sh.Cost,
                 Mileage = sh.Mileage,
                 IsVerified = sh.IsVerified,
                 ExternalServiceCenterName = sh.ExternalServiceCenterName,
@@ -55,8 +56,8 @@ namespace Vpassbackend.Controllers
             return Ok(serviceHistoryDTOs);
         }
 
-        // GET: api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}
-        [HttpGet("api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}")]
+        // GET: api/VehicleServiceHistory/{vehicleId}/{serviceHistoryId}
+        [HttpGet("{vehicleId}/{serviceHistoryId}")]
         public async Task<ActionResult<ServiceHistoryDTO>> GetServiceHistory(int vehicleId, int serviceHistoryId)
         {
             var serviceHistory = await _context.VehicleServiceHistories
@@ -76,12 +77,12 @@ namespace Vpassbackend.Controllers
                 VehicleId = serviceHistory.VehicleId,
                 ServiceType = serviceHistory.ServiceType,
                 Description = serviceHistory.Description,
-                Cost = serviceHistory.Cost,
                 ServiceCenterId = serviceHistory.ServiceCenterId,
                 ServicedByUserId = serviceHistory.ServicedByUserId,
                 ServiceCenterName = serviceHistory.ServiceCenter?.Station_name,
                 ServicedByUserName = serviceHistory.ServicedByUser != null ? $"{serviceHistory.ServicedByUser.FirstName} {serviceHistory.ServicedByUser.LastName}" : null,
                 ServiceDate = serviceHistory.ServiceDate,
+                Cost = serviceHistory.Cost,
                 Mileage = serviceHistory.Mileage,
                 IsVerified = serviceHistory.IsVerified,
                 ExternalServiceCenterName = serviceHistory.ExternalServiceCenterName,
@@ -91,8 +92,8 @@ namespace Vpassbackend.Controllers
             return Ok(serviceHistoryDTO);
         }
 
-        // POST: api/Vehicles/{vehicleId}/ServiceHistory
-        [HttpPost("api/Vehicles/{vehicleId}/ServiceHistory")]
+        // POST: api/VehicleServiceHistory/{vehicleId}
+        [HttpPost("{vehicleId}")]
         public async Task<ActionResult<ServiceHistoryDTO>> AddServiceHistory(int vehicleId, [FromBody] AddServiceHistoryDTO dto)
         {
             // Validate vehicle exists
@@ -117,18 +118,9 @@ namespace Vpassbackend.Controllers
                     return NotFound("Service center not found");
                 }
 
-                // When service is performed at our registered service center, it's verified
+                // For a registered service center, we mark as verified
+                // In a real implementation, we might check if this service type is offered by this center
                 isVerified = true;
-            }
-
-            // Verify user if provided
-            if (dto.ServicedByUserId.HasValue)
-            {
-                var user = await _context.Users.FindAsync(dto.ServicedByUserId.Value);
-                if (user == null)
-                {
-                    return NotFound("User not found");
-                }
             }
 
             string? receiptPath = null;
@@ -171,10 +163,10 @@ namespace Vpassbackend.Controllers
                 VehicleId = dto.VehicleId,
                 ServiceType = dto.ServiceType,
                 Description = dto.Description,
-                Cost = dto.Cost,
                 ServiceCenterId = dto.ServiceCenterId,
                 ServicedByUserId = dto.ServicedByUserId,
                 ServiceDate = dto.ServiceDate,
+                Cost = dto.Cost,
                 Mileage = dto.Mileage,
                 IsVerified = isVerified,
                 ExternalServiceCenterName = !isVerified ? dto.ExternalServiceCenterName : null,
@@ -199,12 +191,11 @@ namespace Vpassbackend.Controllers
                 VehicleId = serviceHistory.VehicleId,
                 ServiceType = serviceHistory.ServiceType,
                 Description = serviceHistory.Description,
-                Cost = serviceHistory.Cost,
                 ServiceCenterId = serviceHistory.ServiceCenterId,
                 ServicedByUserId = serviceHistory.ServicedByUserId,
                 ServiceCenterName = serviceHistory.ServiceCenter?.Station_name,
-                ServicedByUserName = serviceHistory.ServicedByUser != null ? $"{serviceHistory.ServicedByUser.FirstName} {serviceHistory.ServicedByUser.LastName}" : null,
                 ServiceDate = serviceHistory.ServiceDate,
+                Cost = serviceHistory.Cost,
                 Mileage = serviceHistory.Mileage,
                 IsVerified = serviceHistory.IsVerified,
                 ExternalServiceCenterName = serviceHistory.ExternalServiceCenterName,
@@ -216,8 +207,8 @@ namespace Vpassbackend.Controllers
                 result);
         }
 
-        // PUT: api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}
-        [HttpPut("api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}")]
+        // PUT: api/VehicleServiceHistory/{vehicleId}/{serviceHistoryId}
+        [HttpPut("{vehicleId}/{serviceHistoryId}")]
         public async Task<IActionResult> UpdateServiceHistory(int vehicleId, int serviceHistoryId, [FromBody] UpdateServiceHistoryDTO dto)
         {
             // Ensure path parameters match DTO
@@ -229,7 +220,6 @@ namespace Vpassbackend.Controllers
             var serviceHistory = await _context.VehicleServiceHistories
                 .Include(sh => sh.Vehicle)
                 .Include(sh => sh.ServiceCenter)
-                .Include(sh => sh.ServicedByUser)
                 .FirstOrDefaultAsync(sh => sh.ServiceHistoryId == serviceHistoryId && sh.VehicleId == vehicleId);
 
             if (serviceHistory == null)
@@ -249,18 +239,8 @@ namespace Vpassbackend.Controllers
                     return NotFound("Service center not found");
                 }
 
-                // When service is performed at our registered service center, it's verified
+                // Mark as verified if a registered service center is used
                 isVerified = true;
-            }
-
-            // Verify user if provided
-            if (dto.ServicedByUserId.HasValue)
-            {
-                var user = await _context.Users.FindAsync(dto.ServicedByUserId.Value);
-                if (user == null)
-                {
-                    return NotFound("User not found");
-                }
             }
 
             string? receiptPath = serviceHistory.ReceiptDocumentPath;
@@ -312,10 +292,10 @@ namespace Vpassbackend.Controllers
             // Update service history
             serviceHistory.ServiceType = dto.ServiceType;
             serviceHistory.Description = dto.Description;
-            serviceHistory.Cost = dto.Cost;
             serviceHistory.ServiceCenterId = dto.ServiceCenterId;
             serviceHistory.ServicedByUserId = dto.ServicedByUserId;
             serviceHistory.ServiceDate = dto.ServiceDate;
+            serviceHistory.Cost = dto.Cost;
             serviceHistory.Mileage = dto.Mileage;
             serviceHistory.IsVerified = isVerified;
             serviceHistory.ExternalServiceCenterName = !isVerified ? dto.ExternalServiceCenterName : null;
@@ -350,8 +330,8 @@ namespace Vpassbackend.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}
-        [HttpDelete("api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}")]
+        // DELETE: api/VehicleServiceHistory/{vehicleId}/{serviceHistoryId}
+        [HttpDelete("{vehicleId}/{serviceHistoryId}")]
         public async Task<IActionResult> DeleteServiceHistory(int vehicleId, int serviceHistoryId)
         {
             var serviceHistory = await _context.VehicleServiceHistories

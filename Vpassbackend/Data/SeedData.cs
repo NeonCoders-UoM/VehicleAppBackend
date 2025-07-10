@@ -261,6 +261,134 @@ namespace Vpassbackend.Data
                     await context.SaveChangesAsync();
                 }
             }
+            
+            // Add sample vehicles if none exist
+            if (!context.Vehicles.Any())
+            {
+                // First, we need to find a customer to associate with these vehicles
+                var customer = await context.Customers.FirstOrDefaultAsync();
+                
+                // If no customers exist, create a test customer
+                if (customer == null)
+                {
+                    customer = new Customer
+                    {
+                        FirstName = "Test",
+                        LastName = "Customer",
+                        Email = "testcustomer@example.com",
+                        Address = "123 Test Street",
+                        PhoneNumber = "555-123-4567",
+                        Password = BCrypt.Net.BCrypt.HashPassword("Customer@123"),
+                        NIC = "TEST-123456789"
+                    };
+                    context.Customers.Add(customer);
+                    await context.SaveChangesAsync();
+                }
+                
+                var sampleVehicle1 = new Vehicle
+                {
+                    CustomerId = customer.CustomerId,
+                    Brand = "Toyota",
+                    Model = "Corolla",
+                    Year = 2022,
+                    ChassisNumber = "1HGCM82633A123456",
+                    RegistrationNumber = "ABC-1234",
+                    Fuel = "Gasoline",
+                    Mileage = 15000,
+                    Customer = customer
+                };
+                
+                var sampleVehicle2 = new Vehicle
+                {
+                    CustomerId = customer.CustomerId,
+                    Brand = "Honda",
+                    Model = "Civic",
+                    Year = 2021,
+                    ChassisNumber = "2HGES16533H567890",
+                    RegistrationNumber = "XYZ-5678",
+                    Fuel = "Hybrid",
+                    Mileage = 22000,
+                    Customer = customer
+                };
+                
+                context.Vehicles.AddRange(sampleVehicle1, sampleVehicle2);
+                await context.SaveChangesAsync();
+            }
+            
+            // Add sample service reminders if none exist
+            if (!context.ServiceReminders.Any())
+            {
+                try
+                {
+                    var vehicles = await context.Vehicles.ToListAsync();
+                    var services = await context.Services.ToListAsync();
+                    
+                    if (vehicles.Count > 0 && services.Count > 0)
+                    {
+                        var vehicle1 = vehicles.FirstOrDefault();
+                        var vehicle2 = vehicles.Count > 1 ? vehicles[1] : vehicle1;
+                        
+                        var oilChangeService = services.FirstOrDefault(s => s.ServiceName == "Oil Change");
+                        var tireRotationService = services.FirstOrDefault(s => s.ServiceName == "Tire Rotation");
+                        var inspectionService = services.FirstOrDefault(s => s.ServiceName == "Full Inspection");
+                        
+                        if (vehicle1 != null && oilChangeService != null)
+                        {
+                            context.ServiceReminders.Add(new ServiceReminder
+                            {
+                                VehicleId = vehicle1.VehicleId,
+                                ServiceId = oilChangeService.ServiceId,
+                                ReminderDate = DateTime.UtcNow.AddMonths(3),
+                                IntervalMonths = 6,
+                                NotifyBeforeDays = 14,
+                                Notes = "Regular oil change reminder",
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            });
+                        }
+                        
+                        if (vehicle1 != null && tireRotationService != null)
+                        {
+                            context.ServiceReminders.Add(new ServiceReminder
+                            {
+                                VehicleId = vehicle1.VehicleId,
+                                ServiceId = tireRotationService.ServiceId,
+                                ReminderDate = DateTime.UtcNow.AddMonths(2),
+                                IntervalMonths = 6,
+                                NotifyBeforeDays = 7,
+                                Notes = "Tire rotation every 10,000 miles",
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            });
+                        }
+                        
+                        if (vehicle2 != null && inspectionService != null)
+                        {
+                            context.ServiceReminders.Add(new ServiceReminder
+                            {
+                                VehicleId = vehicle2.VehicleId,
+                                ServiceId = inspectionService.ServiceId,
+                                ReminderDate = DateTime.UtcNow.AddDays(10),
+                                IntervalMonths = 12,
+                                NotifyBeforeDays = 30,
+                                Notes = "Annual vehicle inspection",
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            });
+                        }
+                        
+                        await context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception, but don't throw it to allow the app to continue
+                    Console.WriteLine($"Error seeding service reminders: {ex.Message}");
+                }
+            }
         }
     }
 }

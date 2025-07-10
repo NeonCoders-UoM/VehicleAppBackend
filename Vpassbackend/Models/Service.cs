@@ -29,5 +29,8 @@ namespace Vpassbackend.Models
 
         // Many-to-many relationship with ServiceCenters through ServiceCenterService
         public ICollection<ServiceCenterService> ServiceCenterServices { get; set; } = new List<ServiceCenterService>();
+        
+        // Service reminders associated with this service type
+        public ICollection<ServiceReminder> ServiceReminders { get; set; } = new List<ServiceReminder>();
     }
 }

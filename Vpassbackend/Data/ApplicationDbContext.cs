@@ -23,6 +23,8 @@ namespace Vpassbackend.Data
         public DbSet<ServiceReminder> ServiceReminders { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
+        public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

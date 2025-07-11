@@ -11,19 +11,18 @@ namespace Vpassbackend.Data
             if (!context.UserRoles.Any())
             {
                 context.UserRoles.AddRange(
-                new UserRole { UserRoleId = 1, UserRoleName = "SuperAdmin" },
-                new UserRole { UserRoleId = 2, UserRoleName = "Admin" },
-                new UserRole { UserRoleId = 3, UserRoleName = "ServiceCenterAdmin" },
-                new UserRole { UserRoleId = 4, UserRoleName = "Cashier" },
-                new UserRole { UserRoleId = 5, UserRoleName = "DataOperator" }
+                new UserRole { UserRoleName = "SuperAdmin" },
+                new UserRole { UserRoleName = "Admin" },
+                new UserRole { UserRoleName = "ServiceCenterAdmin" },
+                new UserRole { UserRoleName = "Cashier" },
+                new UserRole { UserRoleName = "DataOperator" }
             );
                 await context.SaveChangesAsync();
             }
 
             if (!context.Users.Any())
             {
-                // Get the SuperAdmin role that was just created
-                // var superAdminRole = context.UserRoles.First(r => r.UserRoleName == "SuperAdmin");
+
 
                 var superAdmin = new User
                 {
@@ -261,13 +260,13 @@ namespace Vpassbackend.Data
                     await context.SaveChangesAsync();
                 }
             }
-            
+
             // Add sample vehicles if none exist
             if (!context.Vehicles.Any())
             {
                 // First, we need to find a customer to associate with these vehicles
                 var customer = await context.Customers.FirstOrDefaultAsync();
-                
+
                 // If no customers exist, create a test customer
                 if (customer == null)
                 {
@@ -284,7 +283,7 @@ namespace Vpassbackend.Data
                     context.Customers.Add(customer);
                     await context.SaveChangesAsync();
                 }
-                
+
                 var sampleVehicle1 = new Vehicle
                 {
                     CustomerId = customer.CustomerId,
@@ -297,7 +296,7 @@ namespace Vpassbackend.Data
                     Mileage = 15000,
                     Customer = customer
                 };
-                
+
                 var sampleVehicle2 = new Vehicle
                 {
                     CustomerId = customer.CustomerId,
@@ -310,11 +309,11 @@ namespace Vpassbackend.Data
                     Mileage = 22000,
                     Customer = customer
                 };
-                
+
                 context.Vehicles.AddRange(sampleVehicle1, sampleVehicle2);
                 await context.SaveChangesAsync();
             }
-            
+
             // Add sample service reminders if none exist
             if (!context.ServiceReminders.Any())
             {
@@ -322,16 +321,16 @@ namespace Vpassbackend.Data
                 {
                     var vehicles = await context.Vehicles.ToListAsync();
                     var services = await context.Services.ToListAsync();
-                    
+
                     if (vehicles.Count > 0 && services.Count > 0)
                     {
                         var vehicle1 = vehicles.FirstOrDefault();
                         var vehicle2 = vehicles.Count > 1 ? vehicles[1] : vehicle1;
-                        
+
                         var oilChangeService = services.FirstOrDefault(s => s.ServiceName == "Oil Change");
                         var tireRotationService = services.FirstOrDefault(s => s.ServiceName == "Tire Rotation");
                         var inspectionService = services.FirstOrDefault(s => s.ServiceName == "Full Inspection");
-                        
+
                         if (vehicle1 != null && oilChangeService != null)
                         {
                             context.ServiceReminders.Add(new ServiceReminder
@@ -347,7 +346,7 @@ namespace Vpassbackend.Data
                                 UpdatedAt = DateTime.UtcNow
                             });
                         }
-                        
+
                         if (vehicle1 != null && tireRotationService != null)
                         {
                             context.ServiceReminders.Add(new ServiceReminder
@@ -363,7 +362,7 @@ namespace Vpassbackend.Data
                                 UpdatedAt = DateTime.UtcNow
                             });
                         }
-                        
+
                         if (vehicle2 != null && inspectionService != null)
                         {
                             context.ServiceReminders.Add(new ServiceReminder
@@ -379,7 +378,7 @@ namespace Vpassbackend.Data
                                 UpdatedAt = DateTime.UtcNow
                             });
                         }
-                        
+
                         await context.SaveChangesAsync();
                     }
                 }

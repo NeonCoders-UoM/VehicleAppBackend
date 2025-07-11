@@ -24,6 +24,8 @@ namespace Vpassbackend.Data
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
         public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
+        public DbSet<ClosureSchedule> ClosureSchedules { get; set; }
+        public DbSet<ServiceAvailability> ServiceAvailabilities { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

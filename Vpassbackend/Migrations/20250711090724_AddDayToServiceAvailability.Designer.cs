@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250709065437_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250711090724_AddDayToServiceAvailability")]
+    partial class AddDayToServiceAvailability
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,6 +36,9 @@ namespace Vpassbackend.Migrations
                     b.Property<DateTime?>("AppointmentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("AppointmentPrice")
+                        .HasColumnType("decimal(10, 2)");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
@@ -44,6 +47,9 @@ namespace Vpassbackend.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Station_id")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -62,6 +68,8 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceId");
+
+                    b.HasIndex("Station_id");
 
                     b.HasIndex("VehicleId");
 
@@ -97,6 +105,29 @@ namespace Vpassbackend.Migrations
                     b.ToTable("BorderPoints");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.ClosureSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Day")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ServiceCenterId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WeekNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClosureSchedules");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.Customer", b =>
                 {
                     b.Property<int>("CustomerId")
@@ -120,6 +151,9 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -132,6 +166,12 @@ namespace Vpassbackend.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("OtpCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OtpExpiry")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -177,6 +217,39 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.EmergencyCallCenter", b =>
+                {
+                    b.Property<int>("CenterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CenterId"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("CenterId");
+
+                    b.ToTable("EmergencyCallCenters");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
@@ -239,6 +312,10 @@ namespace Vpassbackend.Migrations
                     b.Property<decimal?>("BasePrice")
                         .HasColumnType("decimal(10, 2)");
 
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -251,14 +328,37 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Station_id")
-                        .HasColumnType("int");
-
                     b.HasKey("ServiceId");
 
-                    b.HasIndex("Station_id");
-
                     b.ToTable("Services");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Day")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ServiceCenterId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WeekNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ServiceAvailabilities");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenter", b =>
@@ -327,6 +427,85 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("Station_id");
 
                     b.ToTable("ServiceCenterCheckInPoints");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterService", b =>
+                {
+                    b.Property<int>("ServiceCenterServiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceCenterServiceId"));
+
+                    b.Property<decimal?>("CustomPrice")
+                        .HasColumnType("decimal(10, 2)");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Station_id")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServiceCenterServiceId");
+
+                    b.HasIndex("Station_id");
+
+                    b.HasIndex("ServiceId", "Station_id")
+                        .IsUnique();
+
+                    b.ToTable("ServiceCenterServices");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
+                {
+                    b.Property<int>("ServiceReminderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceReminderId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IntervalMonths")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("NotifyBeforeDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReminderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServiceReminderId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("ServiceReminders");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.User", b =>
@@ -429,6 +608,63 @@ namespace Vpassbackend.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.VehicleServiceHistory", b =>
+                {
+                    b.Property<int>("ServiceHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceHistoryId"));
+
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("decimal(10, 2)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ExternalServiceCenterName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Mileage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReceiptDocumentPath")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("ServiceCenterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ServiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ServiceType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ServicedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ServiceHistoryId");
+
+                    b.HasIndex("ServiceCenterId");
+
+                    b.HasIndex("ServicedByUserId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("VehicleServiceHistories");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.Appointment", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Customer", "Customer")
@@ -443,6 +679,12 @@ namespace Vpassbackend.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany()
+                        .HasForeignKey("Station_id")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
                         .WithMany("Appointments")
                         .HasForeignKey("VehicleId")
@@ -452,6 +694,8 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Service");
+
+                    b.Navigation("ServiceCenter");
 
                     b.Navigation("Vehicle");
                 });
@@ -500,17 +744,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Invoice");
                 });
 
-            modelBuilder.Entity("Vpassbackend.Models.Service", b =>
-                {
-                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
-                        .WithMany("Services")
-                        .HasForeignKey("Station_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceCenter");
-                });
-
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenterCheckInPoint", b =>
                 {
                     b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
@@ -520,6 +753,44 @@ namespace Vpassbackend.Migrations
                         .IsRequired();
 
                     b.Navigation("ServiceCenter");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterService", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.Service", "Service")
+                        .WithMany("ServiceCenterServices")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany("ServiceCenterServices")
+                        .HasForeignKey("Station_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("ServiceCenter");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.Service", "Service")
+                        .WithMany("ServiceReminders")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany("ServiceReminders")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.User", b =>
@@ -544,6 +815,31 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.VehicleServiceHistory", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany()
+                        .HasForeignKey("ServiceCenterId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Vpassbackend.Models.User", "ServicedByUser")
+                        .WithMany()
+                        .HasForeignKey("ServicedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany("ServiceHistory")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceCenter");
+
+                    b.Navigation("ServicedByUser");
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
                 {
                     b.Navigation("PaymentLogs");
@@ -552,13 +848,17 @@ namespace Vpassbackend.Migrations
             modelBuilder.Entity("Vpassbackend.Models.Service", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("ServiceCenterServices");
+
+                    b.Navigation("ServiceReminders");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenter", b =>
                 {
                     b.Navigation("CheckInPoints");
 
-                    b.Navigation("Services");
+                    b.Navigation("ServiceCenterServices");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Vehicle", b =>
@@ -570,6 +870,10 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Documents");
 
                     b.Navigation("Invoices");
+
+                    b.Navigation("ServiceHistory");
+
+                    b.Navigation("ServiceReminders");
                 });
 #pragma warning restore 612, 618
         }

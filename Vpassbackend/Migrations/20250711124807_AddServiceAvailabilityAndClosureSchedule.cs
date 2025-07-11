@@ -5,7 +5,7 @@
 namespace Vpassbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddServiceCenterManagement : Migration
+    public partial class AddServiceAvailabilityAndClosureSchedule : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

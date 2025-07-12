@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj": {}
+    "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj": {}
   },
   "projects": {
-    "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj": {
+    "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
+        "projectUniqueName": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
         "projectName": "Vpassbackend",
-        "projectPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
-        "packagesPath": "C:\\Users\\Hello\\.nuget\\packages\\",
-        "outputPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\obj\\",
+        "projectPath": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
+        "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
+        "outputPath": "D:\\L2S2\\Digital400_VPass\\VehicleAppBackend\\Vpassbackend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Hello\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -102,7 +102,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.401/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

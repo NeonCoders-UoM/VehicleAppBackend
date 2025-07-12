@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Vpassbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialCreateWithFuelEfficiency : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -286,6 +286,29 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "FuelEfficiencies",
+                columns: table => new
+                {
+                    FuelEfficiencyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    FuelAmount = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Notes = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FuelEfficiencies", x => x.FuelEfficiencyId);
+                    table.ForeignKey(
+                        name: "FK_FuelEfficiencies_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -430,6 +453,11 @@ namespace Vpassbackend.Migrations
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FuelEfficiencies_VehicleId",
+                table: "FuelEfficiencies",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Invoices_VehicleId",
                 table: "Invoices",
                 column: "VehicleId");
@@ -505,6 +533,9 @@ namespace Vpassbackend.Migrations
 
             migrationBuilder.DropTable(
                 name: "EmergencyCallCenters");
+
+            migrationBuilder.DropTable(
+                name: "FuelEfficiencies");
 
             migrationBuilder.DropTable(
                 name: "PaymentLogs");

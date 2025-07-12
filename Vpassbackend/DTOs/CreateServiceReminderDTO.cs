@@ -7,8 +7,7 @@ namespace Vpassbackend.DTOs
         [Required]
         public int VehicleId { get; set; }
 
-        [Required]
-        public int ServiceId { get; set; }
+        // ServiceId removed as requested
 
         [Required]
         public DateTime ReminderDate { get; set; }

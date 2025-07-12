@@ -12,9 +12,9 @@ namespace Vpassbackend.Models
         [ForeignKey("Vehicle")]
         public int VehicleId { get; set; }
 
-        [Required]
+        // ServiceId is no longer required in the frontend but still needed for the database relationship
         [ForeignKey("Service")]
-        public int ServiceId { get; set; }
+        public int ServiceId { get; set; } = 1; // Default to service ID 1
 
         [Required]
         public DateTime ReminderDate { get; set; }
@@ -32,7 +32,7 @@ namespace Vpassbackend.Models
         public string? Notes { get; set; }
 
         public bool IsActive { get; set; } = true;
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

@@ -24,6 +24,7 @@ namespace Vpassbackend.Data
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
         public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
+        public DbSet<Feedback> Feedbacks { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +105,25 @@ namespace Vpassbackend.Data
                 .WithMany(s => s.ServiceReminders)
                 .HasForeignKey(sr => sr.ServiceId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Feedback relationships
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.Customer)
+                .WithMany()
+                .HasForeignKey(f => f.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.ServiceCenter)
+                .WithMany()
+                .HasForeignKey(f => f.ServiceCenterId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.Vehicle)
+                .WithMany()
+                .HasForeignKey(f => f.VehicleId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

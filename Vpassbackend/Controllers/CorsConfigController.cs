@@ -25,7 +25,9 @@ namespace Vpassbackend.Controllers
             var allowedOrigins = new List<string>
             {
                 "http://localhost:2027", // Flutter web
-                "http://127.0.0.1:2027"  // Flutter web alternative
+                "http://127.0.0.1:2027",  // Flutter web alternative
+                "http://localhost:3000",
+                "http://192.168.8.161:3000"
             };
 
             // In a production setup, you would fetch this from a database or configuration

@@ -31,7 +31,13 @@ namespace Vpassbackend.Services
             }
             else
             {
-                fileName = $"{documentType.ToLower()}.pdf";
+                // Preserve original extension from fileName
+                var extension = Path.GetExtension(fileName);
+                if (string.IsNullOrEmpty(extension))
+                {
+                    extension = ".pdf"; // fallback if no extension found
+                }
+                fileName = $"{documentType.ToLower()}{extension}";
             }
 
             string blobName = path + fileName;
@@ -39,6 +45,7 @@ namespace Vpassbackend.Services
             await blobClient.UploadAsync(fileStream, overwrite: true);
             return blobClient.Uri.ToString();
         }
+
 
         public async Task<bool> DeleteFileAsync(string fileUrl)
         {

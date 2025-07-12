@@ -25,12 +25,12 @@ namespace Vpassbackend.Controllers
 
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(
-            [FromForm] IFormFile file,
-            [FromForm] int customerId,
-            [FromForm] int documentType,
-            [FromForm] int? vehicleId,
-            [FromForm] DateTime? expirationDate,
-            [FromForm] string? displayName)
+         [FromForm] IFormFile file,
+         [FromForm] int customerId,
+         [FromForm] int documentType,
+         [FromForm] int? vehicleId,
+         [FromForm] DateTime? expirationDate,
+         [FromForm] string? displayName)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("File is required");
@@ -55,7 +55,7 @@ namespace Vpassbackend.Controllers
                 long totalSize = existingDocs.Sum(d => d.FileSize);
                 long incomingFileSize = file.Length;
 
-                if (totalSize + incomingFileSize > 10 * 1024 * 1024)
+                if (totalSize + incomingFileSize > 10 * 1024 * 1024) // 10 MB limit
                 {
                     return BadRequest("Warranty document storage limit (10MB) exceeded for this vehicle.");
                 }
@@ -74,7 +74,8 @@ namespace Vpassbackend.Controllers
                 UploadedAt = DateTime.UtcNow,
                 ExpirationDate = expirationDate,
                 DisplayName = displayName,
-                FileSize = file.Length
+                FileSize = file.Length,
+                ContentType = file.ContentType  // Store the MIME/content type here
             };
 
             _context.Documents.Add(document);
@@ -82,6 +83,7 @@ namespace Vpassbackend.Controllers
 
             return Ok(document);
         }
+
 
         [HttpGet("list/{customerId}")]
         public IActionResult List(int customerId)
@@ -93,23 +95,30 @@ namespace Vpassbackend.Controllers
         [HttpGet("download")]
         public async Task<IActionResult> Download([FromQuery] string fileUrl)
         {
+            // Find document metadata by fileUrl in the database
+            var document = _context.Documents.FirstOrDefault(d => d.FileUrl == fileUrl);
+            if (document == null)
+                return NotFound("Document metadata not found");
+
             try
             {
                 var stream = await _blobService.DownloadFileAsync(fileUrl);
-                var fileName = Path.GetFileName(new Uri(fileUrl).LocalPath);
+                var contentType = string.IsNullOrEmpty(document.ContentType) ? "application/octet-stream" : document.ContentType;
+                var fileName = document.FileName ?? Path.GetFileName(new Uri(fileUrl).LocalPath);
 
-                // Return the file with headers for downloading
-                return File(stream, "application/octet-stream", fileName);
+                // Return file stream with correct content type and filename for download
+                return File(stream, contentType, fileName);
             }
             catch (FileNotFoundException)
             {
-                return NotFound("File not found");
+                return NotFound("File not found in blob storage");
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error downloading file: {ex.Message}");
             }
         }
+
 
 
         [HttpDelete("delete")]
@@ -119,14 +128,27 @@ namespace Vpassbackend.Controllers
             if (document == null)
                 return NotFound("Document not found");
 
-            bool deleted = await _blobService.DeleteFileAsync(document.FileUrl);
-            if (!deleted)
-                return StatusCode(500, "Error deleting file from storage");
+            try
+            {
+                // Attempt to delete from Azure Blob
+                bool deletedFromCloud = await _blobService.DeleteFileAsync(document.FileUrl);
 
-            _context.Documents.Remove(document);
-            await _context.SaveChangesAsync();
+                if (!deletedFromCloud)
+                {
+                    return StatusCode(500, "File not found or not deleted in Azure Storage");
+                }
 
-            return Ok("Document deleted");
+                // Delete from database if successfully deleted from cloud
+                _context.Documents.Remove(document);
+                await _context.SaveChangesAsync();
+
+                return Ok("Document deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while deleting the document: {ex.Message}");
+            }
         }
+
     }
 }

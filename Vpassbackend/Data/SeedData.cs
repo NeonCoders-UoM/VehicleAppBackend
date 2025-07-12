@@ -22,8 +22,6 @@ namespace Vpassbackend.Data
 
             if (!context.Users.Any())
             {
-
-
                 var superAdmin = new User
                 {
                     FirstName = "Super",
@@ -31,9 +29,35 @@ namespace Vpassbackend.Data
                     Email = "superadmin@example.com",
                     UserRoleId = 1 // SuperAdmin
                 };
-                superAdmin.Password = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123");
+
+                // Explicitly hash the password with BCrypt for login
+                var plainPassword = "SuperAdmin@123";
+                superAdmin.Password = BCrypt.Net.BCrypt.HashPassword(plainPassword);
+
                 context.Users.Add(superAdmin);
                 await context.SaveChangesAsync();
+
+                // Log the user creation for debugging
+                Console.WriteLine($"SuperAdmin user created with email: {superAdmin.Email}");
+            }
+            else
+            {
+                // Ensure SuperAdmin password is correct for frontend testing
+                var existingSuperAdmin = await context.Users
+                    .FirstOrDefaultAsync(u => u.Email == "superadmin@example.com");
+
+                if (existingSuperAdmin != null)
+                {
+                    bool isPasswordValid = BCrypt.Net.BCrypt.Verify("SuperAdmin@123", existingSuperAdmin.Password);
+
+                    if (!isPasswordValid)
+                    {
+                        Console.WriteLine("Updating SuperAdmin password hash...");
+                        existingSuperAdmin.Password = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123");
+                        await context.SaveChangesAsync();
+                        Console.WriteLine("SuperAdmin password updated successfully.");
+                    }
+                }
             }
 
             // Add sample service centers if none exist

@@ -42,10 +42,30 @@ namespace Vpassbackend.Services
 
         public async Task<bool> DeleteFileAsync(string fileUrl)
         {
-            var blobClient = new BlobClient(new Uri(fileUrl));
-            var response = await blobClient.DeleteIfExistsAsync();
-            return response.Value;
+            try
+            {
+                Console.WriteLine($"Requested to delete: {fileUrl}");
+
+                Uri uri = new Uri(fileUrl);
+                string blobName = uri.AbsolutePath.TrimStart('/').Replace(_containerClient.Name + "/", "");
+                Console.WriteLine("Corrected blob name: " + blobName);
+
+                Console.WriteLine($"Extracted blob name: {blobName}");
+
+                var blobClient = _containerClient.GetBlobClient(blobName);
+                var response = await blobClient.DeleteIfExistsAsync();
+                Console.WriteLine($"Delete response: {response.Value}");
+
+                return response.Value;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting blob: {ex.Message}");
+                return false;
+            }
         }
+
+
 
         public async Task<Stream> DownloadFileAsync(string fileUrl)
         {

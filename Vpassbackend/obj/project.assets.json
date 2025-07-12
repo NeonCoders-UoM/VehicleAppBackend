@@ -47,6 +47,40 @@
           }
         }
       },
+      "Azure.Storage.Blobs/12.14.0": {
+        "type": "package",
+        "dependencies": {
+          "Azure.Storage.Common": "12.13.0",
+          "System.Text.Json": "4.7.2"
+        },
+        "compile": {
+          "lib/netstandard2.1/Azure.Storage.Blobs.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.1/Azure.Storage.Blobs.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Azure.Storage.Common/12.13.0": {
+        "type": "package",
+        "dependencies": {
+          "Azure.Core": "1.25.0",
+          "System.IO.Hashing": "6.0.0"
+        },
+        "compile": {
+          "lib/netstandard2.0/Azure.Storage.Common.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Azure.Storage.Common.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "BCrypt.Net-Next/4.0.3": {
         "type": "package",
         "compile": {
@@ -1249,6 +1283,22 @@
           }
         }
       },
+      "System.IO.Hashing/6.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/System.IO.Hashing.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/System.IO.Hashing.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/netcoreapp3.1/_._": {}
+        }
+      },
       "System.IO.Pipelines/6.0.3": {
         "type": "package",
         "compile": {
@@ -1618,6 +1668,40 @@
         "azureicon.png",
         "lib/netstandard2.0/Azure.Identity.dll",
         "lib/netstandard2.0/Azure.Identity.xml"
+      ]
+    },
+    "Azure.Storage.Blobs/12.14.0": {
+      "sha512": "+/aubv2pWQuGw2cDh4TBXOuDYF1IpzI2gttcXYS+g4QJZhzG7TKuN50NuSr0Rlz5AaXVUIoQ+ET2i5ajt3xDPg==",
+      "type": "package",
+      "path": "azure.storage.blobs/12.14.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "CHANGELOG.md",
+        "README.md",
+        "azure.storage.blobs.12.14.0.nupkg.sha512",
+        "azure.storage.blobs.nuspec",
+        "azureicon.png",
+        "lib/netstandard2.0/Azure.Storage.Blobs.dll",
+        "lib/netstandard2.0/Azure.Storage.Blobs.xml",
+        "lib/netstandard2.1/Azure.Storage.Blobs.dll",
+        "lib/netstandard2.1/Azure.Storage.Blobs.xml"
+      ]
+    },
+    "Azure.Storage.Common/12.13.0": {
+      "sha512": "jDv8xJWeZY2Er9zA6QO25BiGolxg87rItt9CwAp7L/V9EPJeaz8oJydaNL9Wj0+3ncceoMgdiyEv66OF8YUwWQ==",
+      "type": "package",
+      "path": "azure.storage.common/12.13.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "CHANGELOG.md",
+        "README.md",
+        "azure.storage.common.12.13.0.nupkg.sha512",
+        "azure.storage.common.nuspec",
+        "azureicon.png",
+        "lib/netstandard2.0/Azure.Storage.Common.dll",
+        "lib/netstandard2.0/Azure.Storage.Common.xml"
       ]
     },
     "BCrypt.Net-Next/4.0.3": {
@@ -3605,6 +3689,29 @@
         "system.identitymodel.tokens.jwt.nuspec"
       ]
     },
+    "System.IO.Hashing/6.0.0": {
+      "sha512": "Rfm2jYCaUeGysFEZjDe7j1R4x6Z6BzumS/vUT5a1AA/AWJuGX71PoGB0RmpyX3VmrGqVnAwtfMn39OHR8Y/5+g==",
+      "type": "package",
+      "path": "system.io.hashing/6.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/netcoreapp2.0/System.IO.Hashing.targets",
+        "buildTransitive/netcoreapp3.1/_._",
+        "lib/net461/System.IO.Hashing.dll",
+        "lib/net461/System.IO.Hashing.xml",
+        "lib/net6.0/System.IO.Hashing.dll",
+        "lib/net6.0/System.IO.Hashing.xml",
+        "lib/netstandard2.0/System.IO.Hashing.dll",
+        "lib/netstandard2.0/System.IO.Hashing.xml",
+        "system.io.hashing.6.0.0.nupkg.sha512",
+        "system.io.hashing.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
     "System.IO.Pipelines/6.0.3": {
       "sha512": "ryTgF+iFkpGZY1vRQhfCzX0xTdlV3pyaTTqRu2ETbEv+HlV7O6y7hyQURnghNIXvctl5DuZ//Dpks6HdL/Txgw==",
       "type": "package",
@@ -4210,6 +4317,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "Azure.Storage.Blobs >= 12.14.0",
       "BCrypt.Net-Next >= 4.0.3",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 8.*",
       "Microsoft.AspNetCore.OpenApi >= 8.0.8",
@@ -4220,23 +4328,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Hello\\.nuget\\packages\\": {},
+    "C:\\Users\\Weditha\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
+      "projectUniqueName": "C:\\Users\\Weditha\\Desktop\\VehicleApp\\Vpassbackend\\Vpassbackend.csproj",
       "projectName": "Vpassbackend",
-      "projectPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\Vpassbackend.csproj",
-      "packagesPath": "C:\\Users\\Hello\\.nuget\\packages\\",
-      "outputPath": "D:\\NeonCoders\\VehicleAppBackend\\VehicleAppBackend\\Vpassbackend\\obj\\",
+      "projectPath": "C:\\Users\\Weditha\\Desktop\\VehicleApp\\Vpassbackend\\Vpassbackend.csproj",
+      "packagesPath": "C:\\Users\\Weditha\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Weditha\\Desktop\\VehicleApp\\Vpassbackend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Hello\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Weditha\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -4245,7 +4353,6 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -4263,12 +4370,17 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "Azure.Storage.Blobs": {
+            "target": "Package",
+            "version": "[12.14.0, )"
+          },
           "BCrypt.Net-Next": {
             "target": "Package",
             "version": "[4.0.3, )"
@@ -4321,7 +4433,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.401/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

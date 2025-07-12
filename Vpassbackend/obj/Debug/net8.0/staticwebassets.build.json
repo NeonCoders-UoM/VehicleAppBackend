@@ -1,11 +1,12 @@
 {
   "Version": 1,
-  "Hash": "RdLvrNdG4nso0HRaLWAWJ7ZTvrSw0aDGukFs/8eD9Tc=",
+  "Hash": "NiD7DTFFYMHtr8BwRG9nYP1w7ykIBIOdQa4ehYGYpCU=",
   "Source": "Vpassbackend",
   "BasePath": "_content/Vpassbackend",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": []
+  "Assets": [],
+  "Endpoints": []
 }

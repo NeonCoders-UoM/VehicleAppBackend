@@ -1,1 +1,7 @@
 *.dll
+# Ignore user secrets and sensitive config
+appsettings.Development.json
+appsettings.Local.json
+
+# Ignore Visual Studio temporary files
+.vs/

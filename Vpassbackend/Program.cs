@@ -45,6 +45,8 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<AzureBlobService>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

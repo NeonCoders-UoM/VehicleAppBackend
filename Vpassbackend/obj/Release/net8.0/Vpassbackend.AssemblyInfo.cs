@@ -13,7 +13,7 @@ using System.Reflection;
 
 [assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("3701839d-78f5-47bd-bd1b-599980d14747")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vpassbackend")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+96063b5b3126512f38b085051676478b154b4ce3")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vpassbackend")]

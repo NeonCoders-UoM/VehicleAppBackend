@@ -24,11 +24,30 @@ namespace Vpassbackend.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NIC = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    LoyaltyPoints = table.Column<int>(type: "int", nullable: false)
+                    LoyaltyPoints = table.Column<int>(type: "int", nullable: false),
+                    IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
+                    OtpCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    OtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Customers", x => x.CustomerId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EmergencyCallCenters",
+                columns: table => new
+                {
+                    CenterId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    RegistrationNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EmergencyCallCenters", x => x.CenterId);
                 });
 
             migrationBuilder.CreateTable(
@@ -49,6 +68,23 @@ namespace Vpassbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ServiceCenters", x => x.Station_id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Services",
+                columns: table => new
+                {
+                    ServiceId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ServiceName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    BasePrice = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
+                    LoyaltyPoints = table.Column<int>(type: "int", nullable: true),
+                    Category = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Services", x => x.ServiceId);
                 });
 
             migrationBuilder.CreateTable(
@@ -111,25 +147,31 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Services",
+                name: "ServiceCenterServices",
                 columns: table => new
                 {
-                    ServiceId = table.Column<int>(type: "int", nullable: false)
+                    ServiceCenterServiceId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ServiceName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    BasePrice = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    LoyaltyPoints = table.Column<int>(type: "int", nullable: true),
-                    Station_id = table.Column<int>(type: "int", nullable: false)
+                    Station_id = table.Column<int>(type: "int", nullable: false),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    CustomPrice = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
+                    IsAvailable = table.Column<bool>(type: "bit", nullable: false),
+                    Notes = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Services", x => x.ServiceId);
+                    table.PrimaryKey("PK_ServiceCenterServices", x => x.ServiceCenterServiceId);
                     table.ForeignKey(
-                        name: "FK_Services_ServiceCenters_Station_id",
+                        name: "FK_ServiceCenterServices_ServiceCenters_Station_id",
                         column: x => x.Station_id,
                         principalTable: "ServiceCenters",
                         principalColumn: "Station_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ServiceCenterServices_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -154,6 +196,48 @@ namespace Vpassbackend.Migrations
                         principalTable: "UserRoles",
                         principalColumn: "UserRoleId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Appointments",
+                columns: table => new
+                {
+                    AppointmentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    Station_id = table.Column<int>(type: "int", nullable: false),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    AppointmentDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    AppointmentPrice = table.Column<decimal>(type: "decimal(10,2)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Appointments", x => x.AppointmentId);
+                    table.ForeignKey(
+                        name: "FK_Appointments_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Appointments_ServiceCenters_Station_id",
+                        column: x => x.Station_id,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
+                    table.ForeignKey(
+                        name: "FK_Appointments_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId");
+                    table.ForeignKey(
+                        name: "FK_Appointments_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId");
                 });
 
             migrationBuilder.CreateTable(
@@ -223,38 +307,75 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Appointments",
+                name: "ServiceReminders",
                 columns: table => new
                 {
-                    AppointmentId = table.Column<int>(type: "int", nullable: false)
+                    ServiceReminderId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     VehicleId = table.Column<int>(type: "int", nullable: false),
                     ServiceId = table.Column<int>(type: "int", nullable: false),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    AppointmentDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                    ReminderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IntervalMonths = table.Column<int>(type: "int", nullable: false),
+                    NotifyBeforeDays = table.Column<int>(type: "int", nullable: false),
+                    Notes = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Appointments", x => x.AppointmentId);
+                    table.PrimaryKey("PK_ServiceReminders", x => x.ServiceReminderId);
                     table.ForeignKey(
-                        name: "FK_Appointments_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "CustomerId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Appointments_Services_ServiceId",
+                        name: "FK_ServiceReminders_Services_ServiceId",
                         column: x => x.ServiceId,
                         principalTable: "Services",
-                        principalColumn: "ServiceId");
+                        principalColumn: "ServiceId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Appointments_Vehicles_VehicleId",
+                        name: "FK_ServiceReminders_Vehicles_VehicleId",
                         column: x => x.VehicleId,
                         principalTable: "Vehicles",
-                        principalColumn: "VehicleId");
+                        principalColumn: "VehicleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "VehicleServiceHistories",
+                columns: table => new
+                {
+                    ServiceHistoryId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    ServiceType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Cost = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    ServiceCenterId = table.Column<int>(type: "int", nullable: true),
+                    ServicedByUserId = table.Column<int>(type: "int", nullable: true),
+                    ServiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Mileage = table.Column<int>(type: "int", nullable: true),
+                    IsVerified = table.Column<bool>(type: "bit", nullable: false),
+                    ExternalServiceCenterName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    ReceiptDocumentPath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VehicleServiceHistories", x => x.ServiceHistoryId);
+                    table.ForeignKey(
+                        name: "FK_VehicleServiceHistories_ServiceCenters_ServiceCenterId",
+                        column: x => x.ServiceCenterId,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
+                    table.ForeignKey(
+                        name: "FK_VehicleServiceHistories_Users_ServicedByUserId",
+                        column: x => x.ServicedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                    table.ForeignKey(
+                        name: "FK_VehicleServiceHistories_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -289,6 +410,11 @@ namespace Vpassbackend.Migrations
                 column: "ServiceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Appointments_Station_id",
+                table: "Appointments",
+                column: "Station_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Appointments_VehicleId",
                 table: "Appointments",
                 column: "VehicleId");
@@ -319,9 +445,25 @@ namespace Vpassbackend.Migrations
                 column: "Station_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Services_Station_id",
-                table: "Services",
+                name: "IX_ServiceCenterServices_ServiceId_Station_id",
+                table: "ServiceCenterServices",
+                columns: new[] { "ServiceId", "Station_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceCenterServices_Station_id",
+                table: "ServiceCenterServices",
                 column: "Station_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceReminders_ServiceId",
+                table: "ServiceReminders",
+                column: "ServiceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ServiceReminders_VehicleId",
+                table: "ServiceReminders",
+                column: "VehicleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_UserRoleId",
@@ -332,6 +474,21 @@ namespace Vpassbackend.Migrations
                 name: "IX_Vehicles_CustomerId",
                 table: "Vehicles",
                 column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleServiceHistories_ServiceCenterId",
+                table: "VehicleServiceHistories",
+                column: "ServiceCenterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleServiceHistories_ServicedByUserId",
+                table: "VehicleServiceHistories",
+                column: "ServicedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleServiceHistories_VehicleId",
+                table: "VehicleServiceHistories",
+                column: "VehicleId");
         }
 
         /// <inheritdoc />
@@ -347,28 +504,40 @@ namespace Vpassbackend.Migrations
                 name: "Documents");
 
             migrationBuilder.DropTable(
+                name: "EmergencyCallCenters");
+
+            migrationBuilder.DropTable(
                 name: "PaymentLogs");
 
             migrationBuilder.DropTable(
                 name: "ServiceCenterCheckInPoints");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "ServiceCenterServices");
 
             migrationBuilder.DropTable(
-                name: "Services");
+                name: "ServiceReminders");
+
+            migrationBuilder.DropTable(
+                name: "VehicleServiceHistories");
 
             migrationBuilder.DropTable(
                 name: "Invoices");
 
             migrationBuilder.DropTable(
-                name: "UserRoles");
+                name: "Services");
 
             migrationBuilder.DropTable(
                 name: "ServiceCenters");
 
             migrationBuilder.DropTable(
+                name: "Users");
+
+            migrationBuilder.DropTable(
                 name: "Vehicles");
+
+            migrationBuilder.DropTable(
+                name: "UserRoles");
 
             migrationBuilder.DropTable(
                 name: "Customers");

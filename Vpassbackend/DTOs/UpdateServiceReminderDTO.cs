@@ -4,8 +4,7 @@ namespace Vpassbackend.DTOs
 {
     public class UpdateServiceReminderDTO
     {
-        [Required]
-        public int ServiceId { get; set; }
+        // ServiceId removed as requested
 
         [Required]
         public DateTime ReminderDate { get; set; }
@@ -19,7 +18,7 @@ namespace Vpassbackend.DTOs
         public int NotifyBeforeDays { get; set; }
 
         public string? Notes { get; set; }
-        
+
         public bool IsActive { get; set; } = true;
     }
 }

@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250711055136_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250712144500_InitialCreateWithFuelEfficiency")]
+    partial class InitialCreateWithFuelEfficiency
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -227,6 +227,37 @@ namespace Vpassbackend.Migrations
                     b.HasKey("CenterId");
 
                     b.ToTable("EmergencyCallCenters");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.FuelEfficiency", b =>
+                {
+                    b.Property<int>("FuelEfficiencyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FuelEfficiencyId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("FuelAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("FuelEfficiencyId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("FuelEfficiencies");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
@@ -671,6 +702,17 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.FuelEfficiency", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany("FuelEfficiencies")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
@@ -817,6 +859,8 @@ namespace Vpassbackend.Migrations
                     b.Navigation("BorderPoints");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("FuelEfficiencies");
 
                     b.Navigation("Invoices");
 

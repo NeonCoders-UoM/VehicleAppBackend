@@ -24,6 +24,7 @@ namespace Vpassbackend.Data
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
         public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
+        public DbSet<FuelEfficiency> FuelEfficiencies { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -103,6 +104,13 @@ namespace Vpassbackend.Data
                 .HasOne(sr => sr.Service)
                 .WithMany(s => s.ServiceReminders)
                 .HasForeignKey(sr => sr.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure FuelEfficiency relationships
+            modelBuilder.Entity<FuelEfficiency>()
+                .HasOne(fe => fe.Vehicle)
+                .WithMany(v => v.FuelEfficiencies)
+                .HasForeignKey(fe => fe.VehicleId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

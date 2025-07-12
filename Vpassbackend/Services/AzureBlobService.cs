@@ -66,13 +66,28 @@ namespace Vpassbackend.Services
         }
 
 
-
         public async Task<Stream> DownloadFileAsync(string fileUrl)
         {
-            var blobClient = new BlobClient(new Uri(fileUrl));
-            var response = await blobClient.DownloadAsync();
-            return response.Value.Content;
+            Uri uri = new Uri(fileUrl);
+
+            // Remove "/vdocuments/" or any container name from path
+            string blobName = uri.AbsolutePath.TrimStart('/').Replace($"{_containerClient.Name}/", "");
+
+            Console.WriteLine($"Corrected blob name: {blobName}");
+
+            var blobClient = _containerClient.GetBlobClient(blobName);
+
+            if (await blobClient.ExistsAsync())
+            {
+                var response = await blobClient.DownloadAsync();
+                return response.Value.Content;
+            }
+
+            throw new FileNotFoundException("File not found in blob storage");
         }
+
+
+
 
         public async Task<List<string>> ListAllFilesAsync()
         {

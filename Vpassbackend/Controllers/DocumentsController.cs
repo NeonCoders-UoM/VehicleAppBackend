@@ -96,14 +96,21 @@ namespace Vpassbackend.Controllers
             try
             {
                 var stream = await _blobService.DownloadFileAsync(fileUrl);
-                var fileName = Path.GetFileName(fileUrl);
+                var fileName = Path.GetFileName(new Uri(fileUrl).LocalPath);
+
+                // Return the file with headers for downloading
                 return File(stream, "application/octet-stream", fileName);
             }
-            catch
+            catch (FileNotFoundException)
             {
                 return NotFound("File not found");
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error downloading file: {ex.Message}");
+            }
         }
+
 
         [HttpDelete("delete")]
         public async Task<IActionResult> Delete([FromQuery] int documentId)

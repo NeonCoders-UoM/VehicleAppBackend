@@ -18,6 +18,8 @@ namespace Vpassbackend.Models
         [Required]
         public DocumentType DocumentType { get; set; }
 
+        public string ContentType { get; set; }
+
         public string? DisplayName { get; set; } // for warranty documents
 
         public long FileSize { get; set; } // in bytes

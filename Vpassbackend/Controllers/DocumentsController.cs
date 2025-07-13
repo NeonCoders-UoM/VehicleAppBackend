@@ -102,8 +102,14 @@ namespace Vpassbackend.Controllers
 
 
         [HttpGet("download")]
-        public async Task<IActionResult> Download([FromQuery] string fileUrl)
+        public async Task<IActionResult> Download([FromQuery] string fileUrl, [FromQuery] string mode = "inline")
         {
+            // Validate mode parameter
+            if (mode != "inline" && mode != "attachment")
+            {
+                return BadRequest("Invalid mode. Use 'inline' for preview or 'attachment' for download.");
+            }
+
             // Find document metadata by fileUrl in the database
             var document = _context.Documents.FirstOrDefault(d => d.FileUrl == fileUrl);
             if (document == null)
@@ -112,11 +118,27 @@ namespace Vpassbackend.Controllers
             try
             {
                 var stream = await _blobService.DownloadFileAsync(fileUrl);
-                var contentType = string.IsNullOrEmpty(document.ContentType) ? "application/octet-stream" : document.ContentType;
                 var fileName = document.FileName ?? Path.GetFileName(new Uri(fileUrl).LocalPath);
 
-                // Return file stream with correct content type and filename for download
-                return File(stream, contentType, fileName);
+                // Determine content type based on file extension if ContentType is missing or unreliable
+                var fileExtension = Path.GetExtension(fileName).ToLower();
+                var contentType = string.IsNullOrEmpty(document.ContentType) || document.ContentType == "application/octet-stream"
+                    ? fileExtension switch
+                    {
+                        ".pdf" => "application/pdf",
+                        ".jpg" => "image/jpeg",
+                        ".jpeg" => "image/jpeg",
+                        ".png" => "image/png",
+                        ".txt" => "text/plain",
+                        _ => "application/octet-stream"
+                    }
+                    : document.ContentType;
+
+                // Set Content-Disposition header with the correct filename
+                Response.Headers.Add("Content-Disposition", $"{mode}; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
+
+                // Return file stream with correct content type
+                return File(stream, contentType);
             }
             catch (FileNotFoundException)
             {
@@ -127,7 +149,7 @@ namespace Vpassbackend.Controllers
                 return StatusCode(500, $"Error downloading file: {ex.Message}");
             }
         }
-       
+
         [HttpDelete("delete")]
         public async Task<IActionResult> Delete([FromQuery] int documentId)
         {

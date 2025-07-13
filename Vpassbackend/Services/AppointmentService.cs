@@ -12,6 +12,16 @@ namespace Vpassbackend.Services
 
         public async Task<List<Appointment>> CreateAppointmentAsync(AppointmentCreateDTO dto)
         {
+            // Validate customer exists
+            var customerExists = await _db.Customers.AnyAsync(c => c.CustomerId == dto.CustomerId);
+            if (!customerExists)
+                throw new KeyNotFoundException("Customer not found.");
+
+            // Validate vehicle belongs to customer
+            var vehicleExists = await _db.Vehicles.AnyAsync(v => v.VehicleId == dto.VehicleId && v.CustomerId == dto.CustomerId);
+            if (!vehicleExists)
+                throw new KeyNotFoundException("Vehicle not found or does not belong to customer.");
+
             var scServices = await _db.ServiceCenterServices
                 .Where(s => s.Station_id == dto.Station_id && dto.ServiceIds.Contains(s.ServiceId))
                 .ToListAsync();
@@ -21,9 +31,8 @@ namespace Vpassbackend.Services
             foreach (var sid in dto.ServiceIds)
             {
                 var scService = scServices.FirstOrDefault(s => s.ServiceId == sid);
-
                 if (scService == null)
-                    throw new Exception($"Service ID {sid} not available at station {dto.Station_id}");
+                    throw new KeyNotFoundException($"Service ID {sid} not available at station {dto.Station_id}");
 
                 var appointment = new Appointment
                 {

@@ -18,9 +18,6 @@ namespace Vpassbackend.Models
         [Required]
         public DateTime Date { get; set; }
 
-        [MaxLength(200)]
-        public string? Notes { get; set; }
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation property

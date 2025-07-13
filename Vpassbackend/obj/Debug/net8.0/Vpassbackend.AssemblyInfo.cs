@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+96063b5b3126512f38b085051676478b154b4ce3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7ab40abb2ceda682667c25673d28c1e08f0d1ce0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250712144500_InitialCreateWithFuelEfficiency")]
-    partial class InitialCreateWithFuelEfficiency
+    [Migration("20250713135707_RemoveNotesFromFuelEfficiency")]
+    partial class RemoveNotesFromFuelEfficiency
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -245,10 +245,6 @@ namespace Vpassbackend.Migrations
 
                     b.Property<decimal>("FuelAmount")
                         .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("VehicleId")
                         .HasColumnType("int");

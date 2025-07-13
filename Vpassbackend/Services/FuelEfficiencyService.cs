@@ -39,7 +39,6 @@ namespace Vpassbackend.Services
                     VehicleId = fe.VehicleId,
                     FuelAmount = fe.FuelAmount,
                     Date = fe.Date,
-                    Notes = fe.Notes,
                     CreatedAt = fe.CreatedAt
                 })
                 .ToListAsync();
@@ -102,7 +101,6 @@ namespace Vpassbackend.Services
                 VehicleId = addFuelDto.VehicleId,
                 FuelAmount = addFuelDto.FuelAmount,
                 Date = addFuelDto.Date,
-                Notes = addFuelDto.Notes,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -115,7 +113,6 @@ namespace Vpassbackend.Services
                 VehicleId = fuelEfficiency.VehicleId,
                 FuelAmount = fuelEfficiency.FuelAmount,
                 Date = fuelEfficiency.Date,
-                Notes = fuelEfficiency.Notes,
                 CreatedAt = fuelEfficiency.CreatedAt
             };
         }
@@ -154,7 +151,6 @@ namespace Vpassbackend.Services
             fuelEfficiency.VehicleId = updateFuelDto.VehicleId;
             fuelEfficiency.FuelAmount = updateFuelDto.FuelAmount;
             fuelEfficiency.Date = updateFuelDto.Date;
-            fuelEfficiency.Notes = updateFuelDto.Notes;
 
             await _context.SaveChangesAsync();
             return true;
@@ -224,8 +220,8 @@ namespace Vpassbackend.Services
         public async Task<List<FuelEfficiencyDTO>> GetFuelRecordsByMonthAsync(int vehicleId, int year, int month)
         {
             return await _context.FuelEfficiencies
-                .Where(fe => fe.VehicleId == vehicleId 
-                    && fe.Date.Year == year 
+                .Where(fe => fe.VehicleId == vehicleId
+                    && fe.Date.Year == year
                     && fe.Date.Month == month)
                 .OrderBy(fe => fe.Date)
                 .Select(fe => new FuelEfficiencyDTO
@@ -234,7 +230,6 @@ namespace Vpassbackend.Services
                     VehicleId = fe.VehicleId,
                     FuelAmount = fe.FuelAmount,
                     Date = fe.Date,
-                    Notes = fe.Notes,
                     CreatedAt = fe.CreatedAt
                 })
                 .ToListAsync();
@@ -243,8 +238,8 @@ namespace Vpassbackend.Services
         public async Task<decimal> GetTotalFuelForPeriodAsync(int vehicleId, DateTime startDate, DateTime endDate)
         {
             return await _context.FuelEfficiencies
-                .Where(fe => fe.VehicleId == vehicleId 
-                    && fe.Date >= startDate 
+                .Where(fe => fe.VehicleId == vehicleId
+                    && fe.Date >= startDate
                     && fe.Date <= endDate)
                 .SumAsync(fe => fe.FuelAmount);
         }

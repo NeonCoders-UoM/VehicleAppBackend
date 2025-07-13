@@ -13,9 +13,6 @@ namespace Vpassbackend.DTOs
 
         [Required]
         public DateTime Date { get; set; }
-
-        [MaxLength(200)]
-        public string? Notes { get; set; }
     }
 
     public class FuelEfficiencyDTO
@@ -24,7 +21,6 @@ namespace Vpassbackend.DTOs
         public int VehicleId { get; set; }
         public decimal FuelAmount { get; set; }
         public DateTime Date { get; set; }
-        public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 

@@ -127,28 +127,7 @@ namespace Vpassbackend.Controllers
                 return StatusCode(500, $"Error downloading file: {ex.Message}");
             }
         }
-        [HttpGet("preview-url")]
-        public async Task<IActionResult> GetPreviewUrl([FromQuery] string fileUrl)
-        {
-            var document = _context.Documents.FirstOrDefault(d => d.FileUrl == fileUrl);
-            if (document == null)
-                return NotFound("Document not found");
-
-            try
-            {
-                var sasUrl = await _blobService.GeneratePreviewUrlAsync(fileUrl);
-                return Ok(new { previewUrl = sasUrl });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Failed to generate preview URL: {ex.Message}");
-            }
-        }
-
-
-
-
-
+       
         [HttpDelete("delete")]
         public async Task<IActionResult> Delete([FromQuery] int documentId)
         {

@@ -286,6 +286,41 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Feedbacks",
+                columns: table => new
+                {
+                    FeedbackId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    ServiceCenterId = table.Column<int>(type: "int", nullable: false),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    Rating = table.Column<int>(type: "int", nullable: false),
+                    Comments = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    FeedbackDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ServiceDate = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Feedbacks", x => x.FeedbackId);
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_ServiceCenters_ServiceCenterId",
+                        column: x => x.ServiceCenterId,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -430,6 +465,21 @@ namespace Vpassbackend.Migrations
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_CustomerId",
+                table: "Feedbacks",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_ServiceCenterId",
+                table: "Feedbacks",
+                column: "ServiceCenterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_VehicleId",
+                table: "Feedbacks",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Invoices_VehicleId",
                 table: "Invoices",
                 column: "VehicleId");
@@ -505,6 +555,9 @@ namespace Vpassbackend.Migrations
 
             migrationBuilder.DropTable(
                 name: "EmergencyCallCenters");
+
+            migrationBuilder.DropTable(
+                name: "Feedbacks");
 
             migrationBuilder.DropTable(
                 name: "PaymentLogs");

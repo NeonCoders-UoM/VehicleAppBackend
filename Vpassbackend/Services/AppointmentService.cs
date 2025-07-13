@@ -46,11 +46,12 @@ namespace Vpassbackend.Services
             return appointments;
         }
 
-        public async Task<List<AppointmentSummaryForCustomerDTO>> GetCustomerAppointmentsAsync(int customerId)
+        // Get all appointments for a specific vehicle
+        public async Task<List<AppointmentSummaryForCustomerDTO>> GetAppointmentsByCustomerVehicleAsync(int customerId, int vehicleId)
         {
             return await _db.Appointments
                 .Include(a => a.ServiceCenter)
-                .Where(a => a.CustomerId == customerId)
+                .Where(a => a.CustomerId == customerId && a.VehicleId == vehicleId)
                 .GroupBy(a => a.AppointmentDate)
                 .Select(g => new AppointmentSummaryForCustomerDTO
                 {
@@ -60,6 +61,7 @@ namespace Vpassbackend.Services
                 }).ToListAsync();
         }
 
+        // Detailed appointment preview
         public async Task<AppointmentDetailForCustomerDTO> GetCustomerAppointmentDetailsAsync(int appointmentId)
         {
             var appointments = await _db.Appointments
@@ -69,9 +71,7 @@ namespace Vpassbackend.Services
                 .Where(a => a.AppointmentId == appointmentId)
                 .ToListAsync();
 
-            var first = appointments.FirstOrDefault();
-            if (first == null)
-                throw new Exception("Appointment not found");
+            var first = appointments.First();
 
             return new AppointmentDetailForCustomerDTO
             {
@@ -83,6 +83,7 @@ namespace Vpassbackend.Services
             };
         }
 
+        // list of appointments per center
         public async Task<List<AppointmentSummaryForAdminDTO>> GetAppointmentsForServiceCenterAsync(int stationId)
         {
             return await _db.Appointments
@@ -97,6 +98,7 @@ namespace Vpassbackend.Services
                 }).ToListAsync();
         }
 
+        // View full appointment details
         public async Task<AppointmentDetailForAdminDTO> GetAppointmentDetailForAdminAsync(int appointmentId)
         {
             var appointments = await _db.Appointments
@@ -116,14 +118,6 @@ namespace Vpassbackend.Services
                 AppointmentDate = first.AppointmentDate ?? DateTime.MinValue,
                 Services = appointments.Select(a => a.Service.ServiceName).ToList()
             };
-        }
-
-        public async Task UpdateAppointmentStatusAsync(int id, string status)
-        {
-            var appointment = await _db.Appointments.FindAsync(id);
-            if (appointment == null) throw new Exception("Appointment not found");
-            appointment.Status = status;
-            await _db.SaveChangesAsync();
         }
     }
 }

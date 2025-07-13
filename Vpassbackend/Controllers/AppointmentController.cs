@@ -18,13 +18,15 @@ namespace Vpassbackend.Controllers
             return Created("", result);
         }
 
-        [HttpGet("customer/{customerId}")]
-        public async Task<IActionResult> GetAllForCustomer(int customerId)
+        // Get all appointments for a customer’s vehicle
+        [HttpGet("customer/{customerId}/vehicle/{vehicleId}")]
+        public async Task<IActionResult> GetAppointmentsByVehicle(int customerId, int vehicleId)
         {
-            var result = await _service.GetCustomerAppointmentsAsync(customerId);
+            var result = await _service.GetAppointmentsByCustomerVehicleAsync(customerId, vehicleId);
             return Ok(result);
         }
 
+        // Get customer appointment detail
         [HttpGet("customer/details/{appointmentId}")]
         public async Task<IActionResult> GetCustomerAppointmentDetail(int appointmentId)
         {
@@ -32,25 +34,20 @@ namespace Vpassbackend.Controllers
             return Ok(result);
         }
 
+        // Get all appointments for a service center
         [HttpGet("station/{stationId}")]
-        public async Task<IActionResult> GetAllForStation(int stationId)
+        public async Task<IActionResult> GetAppointmentsForStation(int stationId)
         {
             var result = await _service.GetAppointmentsForServiceCenterAsync(stationId);
             return Ok(result);
         }
 
+        // View full appointment details
         [HttpGet("station/details/{appointmentId}")]
-        public async Task<IActionResult> GetAdminAppointmentDetail(int appointmentId)
+        public async Task<IActionResult> GetAppointmentDetailForAdmin(int appointmentId)
         {
             var result = await _service.GetAppointmentDetailForAdminAsync(appointmentId);
             return Ok(result);
-        }
-
-        [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, AppointmentStatusUpdateDTO dto)
-        {
-            await _service.UpdateAppointmentStatusAsync(id, dto.Status);
-            return NoContent();
         }
     }
 }

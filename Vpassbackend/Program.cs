@@ -9,9 +9,13 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure EF Core
+// Configure EF Core with retry logic
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
+        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null)));
 
 // Configure CORS for development - Allow any origin during development
 builder.Services.AddCors(options =>
@@ -45,6 +49,7 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -111,6 +116,7 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Seed data
+/*
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -126,6 +132,7 @@ using (var scope = app.Services.CreateScope())
         // Continue with application startup even if seeding fails
     }
 }
+*/
 
 // Configure HTTP pipeline
 if (app.Environment.IsDevelopment())

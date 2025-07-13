@@ -12,7 +12,7 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250711055136_InitialCreate")]
+    [Migration("20250713160234_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

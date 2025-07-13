@@ -1,16 +1,31 @@
+using Azure.Storage;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace Vpassbackend.Services
 {
     public class AzureBlobService
     {
         private readonly BlobContainerClient _containerClient;
+        public StorageSharedKeyCredential Credential { get; }
 
         public AzureBlobService(IConfiguration configuration)
         {
             var connectionString = configuration["AzureBlobStorage:ConnectionString"];
             var containerName = configuration["AzureBlobStorage:ContainerName"];
+
+            // Parse AccountName and AccountKey from the connection string
+            var accountName = ParseConnectionStringValue(connectionString, "AccountName");
+            var accountKey = ParseConnectionStringValue(connectionString, "AccountKey");
+
+            if (accountName == null || accountKey == null)
+            {
+                throw new InvalidOperationException("AccountName or AccountKey missing in connection string.");
+            }
+
+            Credential = new StorageSharedKeyCredential(accountName, accountKey);
+
             var blobServiceClient = new BlobServiceClient(connectionString);
             _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         }
@@ -31,11 +46,10 @@ namespace Vpassbackend.Services
             }
             else
             {
-                // Preserve original extension from fileName
                 var extension = Path.GetExtension(fileName);
                 if (string.IsNullOrEmpty(extension))
                 {
-                    extension = ".pdf"; // fallback if no extension found
+                    extension = ".pdf";
                 }
                 fileName = $"{documentType.ToLower()}{extension}";
             }
@@ -46,18 +60,24 @@ namespace Vpassbackend.Services
             return blobClient.Uri.ToString();
         }
 
-
         public async Task<bool> DeleteFileAsync(string fileUrl)
         {
             try
             {
                 Console.WriteLine($"Requested to delete: {fileUrl}");
 
-                Uri uri = new Uri(fileUrl);
-                string blobName = uri.AbsolutePath.TrimStart('/').Replace(_containerClient.Name + "/", "");
-                Console.WriteLine("Corrected blob name: " + blobName);
+                var uri = new Uri(fileUrl);
+                string fullPath = uri.AbsolutePath.TrimStart('/');
 
-                Console.WriteLine($"Extracted blob name: {blobName}");
+                // Ensure exact blob path by removing container name prefix
+                if (fullPath.StartsWith(_containerClient.Name + "/"))
+                {
+                    fullPath = fullPath.Substring(_containerClient.Name.Length + 1); // +1 for '/'
+                }
+
+                string blobName = Uri.UnescapeDataString(fullPath); // Correct for encoded characters
+
+                Console.WriteLine("Corrected blob name: " + blobName);
 
                 var blobClient = _containerClient.GetBlobClient(blobName);
                 var response = await blobClient.DeleteIfExistsAsync();
@@ -76,8 +96,6 @@ namespace Vpassbackend.Services
         public async Task<Stream> DownloadFileAsync(string fileUrl)
         {
             Uri uri = new Uri(fileUrl);
-
-            // Remove "/vdocuments/" or any container name from path
             string blobName = uri.AbsolutePath.TrimStart('/').Replace($"{_containerClient.Name}/", "");
 
             Console.WriteLine($"Corrected blob name: {blobName}");
@@ -93,9 +111,6 @@ namespace Vpassbackend.Services
             throw new FileNotFoundException("File not found in blob storage");
         }
 
-
-
-
         public async Task<List<string>> ListAllFilesAsync()
         {
             var files = new List<string>();
@@ -106,6 +121,11 @@ namespace Vpassbackend.Services
             return files;
         }
 
-
+        private string? ParseConnectionStringValue(string connectionString, string key)
+        {
+            var regex = new Regex($"{key}=([^;]+)", RegexOptions.IgnoreCase);
+            var match = regex.Match(connectionString);
+            return match.Success ? match.Groups[1].Value : null;
+        }
     }
 }

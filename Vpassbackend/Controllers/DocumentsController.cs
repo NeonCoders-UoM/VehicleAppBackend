@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Vpassbackend.Models;
 using Vpassbackend.Services;
-using Vpassbackend.Data;  
-
+using Vpassbackend.Data;
+using Azure.Storage.Blobs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vpassbackend.Controllers
 {
@@ -25,12 +26,12 @@ namespace Vpassbackend.Controllers
 
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(
-         [FromForm] IFormFile file,
-         [FromForm] int customerId,
-         [FromForm] int documentType,
-         [FromForm] int? vehicleId,
-         [FromForm] DateTime? expirationDate,
-         [FromForm] string? displayName)
+            [FromForm] IFormFile file,
+            [FromForm] int customerId,
+            [FromForm] int documentType,
+            [FromForm] int? vehicleId,
+            [FromForm] DateTime? expirationDate,
+            [FromForm] string? displayName)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("File is required");
@@ -46,11 +47,30 @@ namespace Vpassbackend.Controllers
             if (!DocumentTypeHelper.HasExpiration(docTypeEnum))
                 expirationDate = null;
 
+            // Validate customer-level constraint: only one DriversLicense per customer
+            if (docTypeEnum == DocumentType.DriversLicense)
+            {
+                var existingDriversLicense = await _context.Documents
+                    .AnyAsync(d => d.CustomerId == customerId && d.DocumentType == DocumentType.DriversLicense);
+                if (existingDriversLicense)
+                    return BadRequest("Customer already has a Driver's License.");
+            }
+
+            // Validate vehicle-level constraints: only one of each document type (except WarrantyDocument)
+            if (vehicleId.HasValue && docTypeEnum != DocumentType.WarrantyDocument)
+            {
+                var existingDocument = await _context.Documents
+                    .AnyAsync(d => d.VehicleId == vehicleId && d.DocumentType == docTypeEnum);
+                if (existingDocument)
+                    return BadRequest($"Vehicle already has a {docTypeEnum}.");
+            }
+
+            // Validate WarrantyDocument size limit
             if (docTypeEnum == DocumentType.WarrantyDocument && vehicleId.HasValue)
             {
-                var existingDocs = _context.Documents
+                var existingDocs = await _context.Documents
                     .Where(d => d.DocumentType == DocumentType.WarrantyDocument && d.VehicleId == vehicleId)
-                    .ToList();
+                    .ToListAsync();
 
                 long totalSize = existingDocs.Sum(d => d.FileSize);
                 long incomingFileSize = file.Length;
@@ -62,7 +82,23 @@ namespace Vpassbackend.Controllers
             }
 
             using var stream = file.OpenReadStream();
-            var url = await _blobService.UploadFileAsync(stream, file.FileName, customerId, vehicleId, docTypeEnum.ToString());
+            string url;
+            try
+            {
+                url = await _blobService.UploadFileAsync(stream, file.FileName, customerId, vehicleId, docTypeEnum.ToString());
+                // Verify blob exists
+                var blobClient = new BlobClient(new Uri(url), _blobService.Credential);
+                if (!await blobClient.ExistsAsync())
+                {
+                    Console.WriteLine($"Blob upload failed verification for {docTypeEnum}: {url}");
+                    return StatusCode(500, $"Failed to verify blob upload for {docTypeEnum}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Blob upload failed for {docTypeEnum}: {ex.Message}");
+                return StatusCode(500, $"Failed to upload blob: {ex.Message}");
+            }
 
             var document = new Document
             {
@@ -75,7 +111,7 @@ namespace Vpassbackend.Controllers
                 ExpirationDate = expirationDate,
                 DisplayName = displayName,
                 FileSize = file.Length,
-                ContentType = file.ContentType  // Store the MIME/content type here
+                ContentType = file.ContentType
             };
 
             _context.Documents.Add(document);
@@ -83,7 +119,6 @@ namespace Vpassbackend.Controllers
 
             return Ok(document);
         }
-
 
         [HttpGet("list/{customerId}")]
         public IActionResult List(int customerId)
@@ -100,17 +135,14 @@ namespace Vpassbackend.Controllers
             return Ok(documents);
         }
 
-
         [HttpGet("download")]
         public async Task<IActionResult> Download([FromQuery] string fileUrl, [FromQuery] string mode = "inline")
         {
-            // Validate mode parameter
             if (mode != "inline" && mode != "attachment")
             {
                 return BadRequest("Invalid mode. Use 'inline' for preview or 'attachment' for download.");
             }
 
-            // Find document metadata by fileUrl in the database
             var document = _context.Documents.FirstOrDefault(d => d.FileUrl == fileUrl);
             if (document == null)
                 return NotFound("Document metadata not found");
@@ -120,7 +152,6 @@ namespace Vpassbackend.Controllers
                 var stream = await _blobService.DownloadFileAsync(fileUrl);
                 var fileName = document.FileName ?? Path.GetFileName(new Uri(fileUrl).LocalPath);
 
-                // Determine content type based on file extension if ContentType is missing or unreliable
                 var fileExtension = Path.GetExtension(fileName).ToLower();
                 var contentType = string.IsNullOrEmpty(document.ContentType) || document.ContentType == "application/octet-stream"
                     ? fileExtension switch
@@ -134,10 +165,8 @@ namespace Vpassbackend.Controllers
                     }
                     : document.ContentType;
 
-                // Set Content-Disposition header with the correct filename
                 Response.Headers.Add("Content-Disposition", $"{mode}; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
 
-                // Return file stream with correct content type
                 return File(stream, contentType);
             }
             catch (FileNotFoundException)
@@ -159,15 +188,12 @@ namespace Vpassbackend.Controllers
 
             try
             {
-                // Attempt to delete from Azure Blob
                 bool deletedFromCloud = await _blobService.DeleteFileAsync(document.FileUrl);
-
                 if (!deletedFromCloud)
                 {
-                    return StatusCode(500, "File not found or not deleted in Azure Storage");
+                    Console.WriteLine($"Blob not found or not deleted for DocumentId={documentId}, DocumentType={document.DocumentType}: {document.FileUrl}");
                 }
 
-                // Delete from database if successfully deleted from cloud
                 _context.Documents.Remove(document);
                 await _context.SaveChangesAsync();
 
@@ -175,9 +201,9 @@ namespace Vpassbackend.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error deleting document {documentId}: {ex.Message}");
                 return StatusCode(500, $"An error occurred while deleting the document: {ex.Message}");
             }
         }
-
     }
 }

@@ -92,6 +92,15 @@ namespace Vpassbackend.Controllers
             return Ok(documents);
         }
 
+        [HttpGet("listByVehicle/{customerId}/{vehicleId}")]
+        public IActionResult ListByVehicle(int customerId, int vehicleId)
+        {
+            var documents = _context.Documents
+                .Where(d => d.CustomerId == customerId && d.VehicleId == vehicleId);
+            return Ok(documents);
+        }
+
+
         [HttpGet("download")]
         public async Task<IActionResult> Download([FromQuery] string fileUrl)
         {

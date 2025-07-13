@@ -105,5 +105,27 @@ namespace Vpassbackend.Services
             }
             return files;
         }
+
+        public async Task<string> GeneratePreviewUrlAsync(string blobUrl, int validMinutes = 15)
+        {
+            var blobClient = new BlobClient(new Uri(blobUrl), _blobServiceClient.GetBlobContainerClient(_containerName).GetParentBlobServiceClient().GetBlobServiceClientCredential());
+
+            if (!await blobClient.ExistsAsync())
+                throw new FileNotFoundException("Blob not found");
+
+            var sasBuilder = new BlobSasBuilder
+            {
+                BlobContainerName = blobClient.BlobContainerName,
+                BlobName = blobClient.Name,
+                Resource = "b",
+                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(validMinutes),
+            };
+
+            sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+            var sasUri = blobClient.GenerateSasUri(sasBuilder);
+            return sasUri.ToString();
+        }
+
     }
 }

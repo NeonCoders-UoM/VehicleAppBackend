@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0537fdd7a829c5c60be9432459aa66f00dec42eb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+caa97aa9d4e55816ee37c2329d0bc6f546983045")]
 [assembly: System.Reflection.AssemblyProductAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Vpassbackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

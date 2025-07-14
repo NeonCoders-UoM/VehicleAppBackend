@@ -39,6 +39,9 @@ namespace Vpassbackend.Services
             else
                 path += "common/";
 
+            // Sanitize filename to replace spaces and special characters
+            fileName = Regex.Replace(fileName, @"[^a-zA-Z0-9._-]", "_");
+
             if (documentType.ToLower() == "warrantydocument")
             {
                 var timestamp = DateTime.UtcNow.Ticks;

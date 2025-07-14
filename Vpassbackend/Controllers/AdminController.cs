@@ -88,5 +88,26 @@ namespace Vpassbackend.Controllers
             await _context.SaveChangesAsync();
             return Ok("User deleted.");
         }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserById(int id)
+        {
+            var user = await _context.Users
+                .Where(u => u.UserId == id)
+                .Select(u => new
+                {
+                    userId = u.UserId,
+                    firstName = u.FirstName,
+                    lastName = u.LastName,
+                    email = u.Email,
+                    Role = u.UserRole.UserRoleName// Adjust if you have a navigation property
+                })
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return NotFound("User not found");
+
+            return Ok(user);
+        }
+
     }
 }

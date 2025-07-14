@@ -7,7 +7,7 @@ x64/
 x86/
 [Bb]in/
 [Oo]bj/
-*.log
+*.log    
 
 # Visual Studio
 .vs/
@@ -16,11 +16,24 @@ x86/
 *.userosscache
 *.sln.docstates
 
+# Build artifacts that cause conflicts
+**/bin/**
+**/obj/**
+**/*.dll
+**/*.pdb
+**/*.cache
+**/*.exe
+**/Debug/**
+**/Release/**
+
 # Test files and temporary files
 *.pdf
 add_test_data.sql
 test_*.sql
 test_service_history.pdf
+
+# Frontend updates (should be in separate repo)
+frontend-updates/
 
 # NuGet
 packages/

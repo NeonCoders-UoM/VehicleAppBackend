@@ -1,9 +1,0 @@
-{
-  "serviceType": "Oil Change",
-  "description": "Regular oil change and filter replacement",
-  "cost": 45.99,
-  "serviceCenterId": 1,
-  "servicedByUserId": 1,
-  "serviceDate": "2025-07-09T10:30:00",
-  "mileage": 25000
-}

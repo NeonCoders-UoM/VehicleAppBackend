@@ -45,6 +45,9 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddScoped<IFuelEfficiencyService, FuelEfficiencyService>();
+
 builder.Services.AddScoped<IPdfService, PdfService>();
 
 

@@ -321,6 +321,28 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "FuelEfficiencies",
+                columns: table => new
+                {
+                    FuelEfficiencyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    FuelAmount = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FuelEfficiencies", x => x.FuelEfficiencyId);
+                    table.ForeignKey(
+                        name: "FK_FuelEfficiencies_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -480,6 +502,11 @@ namespace Vpassbackend.Migrations
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FuelEfficiencies_VehicleId",
+                table: "FuelEfficiencies",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Invoices_VehicleId",
                 table: "Invoices",
                 column: "VehicleId");
@@ -558,6 +585,9 @@ namespace Vpassbackend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Feedbacks");
+
+            migrationBuilder.DropTable(
+                name: "FuelEfficiencies");
 
             migrationBuilder.DropTable(
                 name: "PaymentLogs");

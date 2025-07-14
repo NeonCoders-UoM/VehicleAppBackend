@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250711053011_AddEmailVerificationFieldsToCustomer")]
-    partial class AddEmailVerificationFieldsToCustomer
+    [Migration("20250714105131_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -227,6 +227,75 @@ namespace Vpassbackend.Migrations
                     b.HasKey("CenterId");
 
                     b.ToTable("EmergencyCallCenters");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.Feedback", b =>
+                {
+                    b.Property<int>("FeedbackId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FeedbackId"));
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FeedbackDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ServiceCenterId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ServiceDate")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("FeedbackId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ServiceCenterId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("Feedbacks");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.FuelEfficiency", b =>
+                {
+                    b.Property<int>("FuelEfficiencyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FuelEfficiencyId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("FuelAmount")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("FuelEfficiencyId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("FuelEfficiencies");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
@@ -671,6 +740,44 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.Feedback", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany()
+                        .HasForeignKey("ServiceCenterId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("ServiceCenter");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.FuelEfficiency", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany("FuelEfficiencies")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
@@ -817,6 +924,8 @@ namespace Vpassbackend.Migrations
                     b.Navigation("BorderPoints");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("FuelEfficiencies");
 
                     b.Navigation("Invoices");
 

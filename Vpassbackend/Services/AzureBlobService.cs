@@ -96,7 +96,9 @@ namespace Vpassbackend.Services
         public async Task<Stream> DownloadFileAsync(string fileUrl)
         {
             Uri uri = new Uri(fileUrl);
-            string blobName = uri.AbsolutePath.TrimStart('/').Replace($"{_containerClient.Name}/", "");
+            // Decode the URL to handle encoded characters like %20
+            string decodedPath = Uri.UnescapeDataString(uri.AbsolutePath);
+            string blobName = decodedPath.TrimStart('/').Replace($"{_containerClient.Name}/", "");
 
             Console.WriteLine($"Corrected blob name: {blobName}");
 
@@ -108,7 +110,7 @@ namespace Vpassbackend.Services
                 return response.Value.Content;
             }
 
-            throw new FileNotFoundException("File not found in blob storage");
+            throw new FileNotFoundException($"File not found in blob storage: {blobName}");
         }
 
         public async Task<List<string>> ListAllFilesAsync()

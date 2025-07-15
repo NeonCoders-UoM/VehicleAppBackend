@@ -48,6 +48,9 @@ mono_crash.*
 
 # Build Results of an ATL Project
 [Dd]ebugPS/
+
+# HTTP test files
+*.http
 [Rr]eleasePS/
 dlldata.c
 

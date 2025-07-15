@@ -1,4 +1,4 @@
-﻿namespace Vpassbackend.Models
+﻿namespace Vpassbackend.DTOs
 {
     public class ServiceCostDTO
     {

@@ -1,5 +1,6 @@
 using Vpassbackend.Data;
 using Vpassbackend.Services;
+using Vpassbackend.BackgroundServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -45,6 +46,17 @@ builder.Services.AddCors(options =>
 // Add services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddScoped<IFuelEfficiencyService, FuelEfficiencyService>();
+
+builder.Services.AddScoped<IPdfService, PdfService>();
+
+// Add notification services
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Add background services
+builder.Services.AddHostedService<NotificationBackgroundService>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

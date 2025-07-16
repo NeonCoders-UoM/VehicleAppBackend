@@ -7,9 +7,10 @@ using Vpassbackend.Models;
 
 namespace Vpassbackend.Controllers
 {
-    [Route("api/[controller]")]
+    [Authorize(Roles = "SuperAdmin")]
     [ApiController]
-    [Authorize]
+    [Route("api/[controller]")]
+   
     public class ServiceCentersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

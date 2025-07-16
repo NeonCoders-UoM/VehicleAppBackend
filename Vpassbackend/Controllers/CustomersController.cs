@@ -66,26 +66,10 @@ namespace Vpassbackend.Controllers
         }
 
         // PUT: api/Customers/5
-        [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, CustomerUpdateDto dto)
-        {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null) return NotFound("Customer not found.");
-
-            customer.FirstName = dto.FirstName;
-            customer.LastName = dto.LastName;
-            customer.Address = dto.Address;
-            customer.PhoneNumber = dto.PhoneNumber;
-            customer.NIC = dto.NIC;
-
-            await _context.SaveChangesAsync();
-            return Ok("Profile updated.");
-        }
-
         // POST: api/Customers/{customerId}/vehicles
-        [Authorize]
+
         [HttpPost("{customerId}/vehicles")]
+        [Authorize]
         public async Task<IActionResult> RegisterVehicle(int customerId, VehicleRegistrationDto dto)
         {
             var customer = await _context.Customers.FindAsync(customerId);
@@ -123,8 +107,7 @@ namespace Vpassbackend.Controllers
             );
         }
 
-        // GET: api/Customers/{customerId}/vehicles
-        [Authorize]
+        [Authorize]// GET: api/Customers/{customerId}/vehicles
         [HttpGet("{customerId}/vehicles")]
         public async Task<IActionResult> GetCustomerVehicles(int customerId)
         {

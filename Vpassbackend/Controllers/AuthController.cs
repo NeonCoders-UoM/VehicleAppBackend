@@ -35,6 +35,7 @@ namespace Vpassbackend.Controllers
             var token = _tokenService.CreateToken(user, user.UserRole.UserRoleName);
             return Ok(new { token });
         }
+
         [HttpPost("login-customer")]
         [AllowAnonymous]
         public async Task<IActionResult> LoginCustomer(CustomerLoginDto dto)
@@ -53,9 +54,9 @@ namespace Vpassbackend.Controllers
 
             var token = _tokenService.CreateTokenForCustomer(customer);
 
-            return Ok(new { token });
+            // ✅ Include the CustomerId in your response
+            return Ok(new { token, customerId = customer.CustomerId });
         }
-
 
 
         [HttpPost("register-customer")]
@@ -146,6 +147,27 @@ namespace Vpassbackend.Controllers
 
             return Ok("OTP resent successfully.");
         }
+
+        [HttpPut("update-customer-details")]
+        public async Task<IActionResult> UpdateCustomerDetails([FromBody] CustomerUpdateDto dto)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            if (customer == null) return NotFound("Customer not found.");
+
+            customer.FirstName = dto.FirstName;
+            customer.LastName = dto.LastName;
+            customer.PhoneNumber = dto.PhoneNumber;
+            customer.NIC = dto.NIC;
+            customer.Address = dto.Address;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Customer details updated.", customerId = customer.CustomerId });
+        }
+
+
+
+
 
 
     }

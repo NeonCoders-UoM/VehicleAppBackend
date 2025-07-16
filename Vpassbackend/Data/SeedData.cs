@@ -361,9 +361,9 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle1.VehicleId,
                                 ServiceId = oilChangeService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddMonths(3),
+                                ReminderDate = DateTime.UtcNow.AddDays(5), // Due in 5 days
                                 IntervalMonths = 6,
-                                NotifyBeforeDays = 14,
+                                NotifyBeforeDays = 14, // Will trigger notification now
                                 Notes = "Regular oil change reminder",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -377,9 +377,9 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle1.VehicleId,
                                 ServiceId = tireRotationService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddMonths(2),
+                                ReminderDate = DateTime.UtcNow.AddDays(-2), // Overdue by 2 days
                                 IntervalMonths = 6,
-                                NotifyBeforeDays = 7,
+                                NotifyBeforeDays = 7, // Will trigger notification now
                                 Notes = "Tire rotation every 10,000 miles",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -393,10 +393,28 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle2.VehicleId,
                                 ServiceId = inspectionService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddDays(10),
+                                ReminderDate = DateTime.UtcNow.AddDays(25), // Due in 25 days
                                 IntervalMonths = 12,
-                                NotifyBeforeDays = 30,
+                                NotifyBeforeDays = 30, // Will trigger notification now
                                 Notes = "Annual vehicle inspection",
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            });
+                        }
+
+                        // Add a brake service reminder that's overdue
+                        var brakeService = services.FirstOrDefault(s => s.ServiceName == "Brake Replacement");
+                        if (vehicle2 != null && brakeService != null)
+                        {
+                            context.ServiceReminders.Add(new ServiceReminder
+                            {
+                                VehicleId = vehicle2.VehicleId,
+                                ServiceId = brakeService.ServiceId,
+                                ReminderDate = DateTime.UtcNow.AddDays(-10), // Overdue by 10 days
+                                IntervalMonths = 12,
+                                NotifyBeforeDays = 7, // Will trigger notification now
+                                Notes = "Brake safety check - important!",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
@@ -410,6 +428,119 @@ namespace Vpassbackend.Data
                 {
                     // Log the exception, but don't throw it to allow the app to continue
                     Console.WriteLine($"Error seeding service reminders: {ex.Message}");
+                }
+            }
+
+            // Add sample notifications based on service reminders if none exist
+            if (!context.Notifications.Any())
+            {
+                try
+                {
+                    var serviceReminders = await context.ServiceReminders
+                        .Include(sr => sr.Vehicle)
+                            .ThenInclude(v => v.Customer)
+                        .Include(sr => sr.Service)
+                        .Where(sr => sr.IsActive)
+                        .ToListAsync();
+
+                    if (serviceReminders.Count > 0)
+                    {
+                        var today = DateTime.UtcNow.Date;
+
+                        foreach (var reminder in serviceReminders)
+                        {
+                            if (reminder.Vehicle?.Customer != null)
+                            {
+                                var daysUntilDue = (reminder.ReminderDate.Date - today).Days;
+
+                                // Create notifications for reminders that are due or coming up
+                                if (daysUntilDue <= reminder.NotifyBeforeDays)
+                                {
+                                    var priorityLevel = daysUntilDue <= 0 ? "Critical" :
+                                                      daysUntilDue <= 3 ? "High" : "Medium";
+
+                                    var title = daysUntilDue <= 0
+                                        ? $"{reminder.Service?.ServiceName ?? "Service"} Overdue"
+                                        : $"{reminder.Service?.ServiceName ?? "Service"} Due Soon";
+
+                                    var message = daysUntilDue <= 0
+                                        ? $"Your {reminder.Vehicle.RegistrationNumber} is overdue for {reminder.Service?.ServiceName ?? "service"}. Please schedule an appointment immediately."
+                                        : $"Your {reminder.Vehicle.RegistrationNumber} needs {reminder.Service?.ServiceName ?? "service"} in {daysUntilDue} day{(daysUntilDue == 1 ? "" : "s")}. Please schedule an appointment.";
+
+                                    var notification = new Notification
+                                    {
+                                        CustomerId = reminder.Vehicle.CustomerId,
+                                        Title = title,
+                                        Message = message,
+                                        Type = "service_reminder",
+                                        Priority = priorityLevel,
+                                        PriorityColor = priorityLevel switch
+                                        {
+                                            "Critical" => "#DC2626", // Red
+                                            "High" => "#EA580C",     // Orange
+                                            "Medium" => "#3B82F6",   // Blue
+                                            _ => "#3B82F6"           // Default blue
+                                        },
+                                        ServiceReminderId = reminder.ServiceReminderId,
+                                        VehicleId = reminder.VehicleId,
+                                        VehicleRegistrationNumber = reminder.Vehicle.RegistrationNumber,
+                                        VehicleBrand = reminder.Vehicle.Brand,
+                                        VehicleModel = reminder.Vehicle.Model,
+                                        ServiceName = reminder.Service?.ServiceName,
+                                        CustomerName = $"{reminder.Vehicle.Customer.FirstName} {reminder.Vehicle.Customer.LastName}",
+                                        CreatedAt = DateTime.UtcNow,
+                                        SentAt = DateTime.UtcNow,
+                                        IsRead = false
+                                    };
+
+                                    context.Notifications.Add(notification);
+                                }
+                            }
+                        }
+
+                        // Also create some general notifications for demonstration
+                        var testCustomer = await context.Customers.FirstOrDefaultAsync();
+                        if (testCustomer != null)
+                        {
+                            // Welcome notification
+                            context.Notifications.Add(new Notification
+                            {
+                                CustomerId = testCustomer.CustomerId,
+                                Title = "Welcome to Vehicle Service System",
+                                Message = "Welcome! Your account has been set up successfully. You'll receive notifications about your vehicle service requirements here.",
+                                Type = "general",
+                                Priority = "Low",
+                                PriorityColor = "#10B981",
+                                CustomerName = $"{testCustomer.FirstName} {testCustomer.LastName}",
+                                CreatedAt = DateTime.UtcNow.AddDays(-1),
+                                SentAt = DateTime.UtcNow.AddDays(-1),
+                                IsRead = true,
+                                ReadAt = DateTime.UtcNow.AddHours(-2)
+                            });
+
+                            // System update notification
+                            context.Notifications.Add(new Notification
+                            {
+                                CustomerId = testCustomer.CustomerId,
+                                Title = "New Feature: Automatic Service Reminders",
+                                Message = "We've added automatic service reminders to help you stay on top of your vehicle maintenance. You'll receive notifications when services are due.",
+                                Type = "general",
+                                Priority = "Medium",
+                                PriorityColor = "#3B82F6",
+                                CustomerName = $"{testCustomer.FirstName} {testCustomer.LastName}",
+                                CreatedAt = DateTime.UtcNow.AddHours(-6),
+                                SentAt = DateTime.UtcNow.AddHours(-6),
+                                IsRead = false
+                            });
+                        }
+
+                        await context.SaveChangesAsync();
+                        Console.WriteLine($"Sample notifications created from service reminders");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error seeding notifications: {ex.Message}");
                 }
             }
         }

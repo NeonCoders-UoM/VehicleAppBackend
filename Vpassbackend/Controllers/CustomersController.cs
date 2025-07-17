@@ -31,6 +31,7 @@ namespace Vpassbackend.Controllers
                     c.LastName,
                     c.Email,
                     c.PhoneNumber,
+                    c.Address,
                     c.LoyaltyPoints
                 }).ToList();
 

@@ -69,7 +69,6 @@ namespace Vpassbackend.Controllers
         // POST: api/Customers/{customerId}/vehicles
 
         [HttpPost("{customerId}/vehicles")]
-        [Authorize]
         public async Task<IActionResult> RegisterVehicle(int customerId, VehicleRegistrationDto dto)
         {
             var customer = await _context.Customers.FindAsync(customerId);

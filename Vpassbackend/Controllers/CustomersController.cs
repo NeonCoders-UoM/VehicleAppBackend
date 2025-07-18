@@ -39,7 +39,7 @@ namespace Vpassbackend.Controllers
         }
 
         // GET: api/Customers/5
-        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
+        // [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCustomerById(int id)
         {

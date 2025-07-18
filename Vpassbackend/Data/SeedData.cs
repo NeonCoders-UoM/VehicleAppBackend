@@ -6,28 +6,45 @@ namespace Vpassbackend.Data
 {
     public static class SeedData
     {
+        // User Role ID Constants for consistency
+        public const int SUPER_ADMIN_ROLE_ID = 1;
+        public const int ADMIN_ROLE_ID = 2;
+        public const int SERVICE_CENTER_ADMIN_ROLE_ID = 3;
+        public const int CASHIER_ROLE_ID = 4;
+        public const int DATA_OPERATOR_ROLE_ID = 5;
+
         public static async Task SeedAsync(ApplicationDbContext context)
         {
+            // Define user roles with explicit IDs for consistency
             if (!context.UserRoles.Any())
             {
                 context.UserRoles.AddRange(
-                new UserRole { UserRoleName = "SuperAdmin" },
-                new UserRole { UserRoleName = "Admin" },
-                new UserRole { UserRoleName = "ServiceCenterAdmin" },
-                new UserRole { UserRoleName = "Cashier" },
-                new UserRole { UserRoleName = "DataOperator" }
+                new UserRole { UserRoleId = SUPER_ADMIN_ROLE_ID, UserRoleName = "SuperAdmin" },
+                new UserRole { UserRoleId = ADMIN_ROLE_ID, UserRoleName = "Admin" },
+                new UserRole { UserRoleId = SERVICE_CENTER_ADMIN_ROLE_ID, UserRoleName = "ServiceCenterAdmin" },
+                new UserRole { UserRoleId = CASHIER_ROLE_ID, UserRoleName = "Cashier" },
+                new UserRole { UserRoleId = DATA_OPERATOR_ROLE_ID, UserRoleName = "DataOperator" }
             );
                 await context.SaveChangesAsync();
             }
 
             if (!context.Users.Any())
             {
+                // Get the SuperAdmin role to ensure we're using the correct UserRoleId
+                var superAdminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "SuperAdmin");
+
+                if (superAdminRole == null)
+                {
+                    throw new InvalidOperationException("SuperAdmin role not found. Please ensure user roles are seeded first.");
+                }
+
                 var superAdmin = new User
                 {
                     FirstName = "Super",
                     LastName = "Admin",
                     Email = "superadmin@example.com",
-                    UserRoleId = 1 // SuperAdmin
+                    UserRoleId = superAdminRole.UserRoleId // Use the actual SuperAdmin role ID
                 };
 
                 // Explicitly hash the password with BCrypt for login
@@ -35,10 +52,74 @@ namespace Vpassbackend.Data
                 superAdmin.Password = BCrypt.Net.BCrypt.HashPassword(plainPassword);
 
                 context.Users.Add(superAdmin);
+
+                // Add sample users for other roles
+                var adminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "Admin");
+                var serviceCenterAdminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "ServiceCenterAdmin");
+                var cashierRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "Cashier");
+                var dataOperatorRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "DataOperator");
+
+                if (adminRole != null)
+                {
+                    var admin = new User
+                    {
+                        FirstName = "System",
+                        LastName = "Admin",
+                        Email = "admin@example.com",
+                        UserRoleId = adminRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("Admin@123")
+                    };
+                    context.Users.Add(admin);
+                }
+
+                if (serviceCenterAdminRole != null)
+                {
+                    var serviceCenterAdmin = new User
+                    {
+                        FirstName = "Service Center",
+                        LastName = "Manager",
+                        Email = "serviceadmin@example.com",
+                        UserRoleId = serviceCenterAdminRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123")
+                    };
+                    context.Users.Add(serviceCenterAdmin);
+                }
+
+                if (cashierRole != null)
+                {
+                    var cashier = new User
+                    {
+                        FirstName = "John",
+                        LastName = "Cashier",
+                        Email = "cashier@example.com",
+                        UserRoleId = cashierRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("Cashier@123")
+                    };
+                    context.Users.Add(cashier);
+                }
+
+                if (dataOperatorRole != null)
+                {
+                    var dataOperator = new User
+                    {
+                        FirstName = "Data",
+                        LastName = "Operator",
+                        Email = "dataoperator@example.com",
+                        UserRoleId = dataOperatorRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("DataOp@123")
+                    };
+                    context.Users.Add(dataOperator);
+                }
+
                 await context.SaveChangesAsync();
 
                 // Log the user creation for debugging
                 Console.WriteLine($"SuperAdmin user created with email: {superAdmin.Email}");
+                Console.WriteLine($"Sample users created for all user roles.");
             }
             else
             {
@@ -543,6 +624,57 @@ namespace Vpassbackend.Data
                     Console.WriteLine($"Error seeding notifications: {ex.Message}");
                 }
             }
+        }
+
+        /// <summary>
+        /// Helper method to create a user with a specific role
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="firstName">User's first name</param>
+        /// <param name="lastName">User's last name</param>
+        /// <param name="email">User's email</param>
+        /// <param name="password">User's password (will be hashed)</param>
+        /// <param name="userRoleId">The ID of the user role</param>
+        /// <returns>The created user</returns>
+        public static User CreateUserWithRole(ApplicationDbContext context, string firstName, string lastName,
+            string email, string password, int userRoleId)
+        {
+            var user = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                UserRoleId = userRoleId,
+                Password = BCrypt.Net.BCrypt.HashPassword(password)
+            };
+
+            context.Users.Add(user);
+            return user;
+        }
+
+        /// <summary>
+        /// Helper method to get a user role by name
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="roleName">Name of the role</param>
+        /// <returns>UserRole if found, null otherwise</returns>
+        public static async Task<UserRole?> GetUserRoleByNameAsync(ApplicationDbContext context, string roleName)
+        {
+            return await context.UserRoles.FirstOrDefaultAsync(r => r.UserRoleName == roleName);
+        }
+
+        /// <summary>
+        /// Helper method to get users by role
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="userRoleId">The user role ID</param>
+        /// <returns>List of users with the specified role</returns>
+        public static async Task<List<User>> GetUsersByRoleAsync(ApplicationDbContext context, int userRoleId)
+        {
+            return await context.Users
+                .Include(u => u.UserRole)
+                .Where(u => u.UserRoleId == userRoleId)
+                .ToListAsync();
         }
     }
 }

@@ -7,7 +7,7 @@ using Vpassbackend.DTOs;
 
 namespace Vpassbackend.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+
     [ApiController]
     [Route("api/[controller]")]
     public class AdminController : ControllerBase

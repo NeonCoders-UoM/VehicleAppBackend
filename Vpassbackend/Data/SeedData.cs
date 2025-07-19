@@ -6,28 +6,45 @@ namespace Vpassbackend.Data
 {
     public static class SeedData
     {
+        // User Role ID Constants for consistency
+        public const int SUPER_ADMIN_ROLE_ID = 1;
+        public const int ADMIN_ROLE_ID = 2;
+        public const int SERVICE_CENTER_ADMIN_ROLE_ID = 3;
+        public const int CASHIER_ROLE_ID = 4;
+        public const int DATA_OPERATOR_ROLE_ID = 5;
+
         public static async Task SeedAsync(ApplicationDbContext context)
         {
+            // Define user roles with explicit IDs for consistency
             if (!context.UserRoles.Any())
             {
                 context.UserRoles.AddRange(
-                new UserRole { UserRoleName = "SuperAdmin" },
-                new UserRole { UserRoleName = "Admin" },
-                new UserRole { UserRoleName = "ServiceCenterAdmin" },
-                new UserRole { UserRoleName = "Cashier" },
-                new UserRole { UserRoleName = "DataOperator" }
+                new UserRole { UserRoleId = SUPER_ADMIN_ROLE_ID, UserRoleName = "SuperAdmin" },
+                new UserRole { UserRoleId = ADMIN_ROLE_ID, UserRoleName = "Admin" },
+                new UserRole { UserRoleId = SERVICE_CENTER_ADMIN_ROLE_ID, UserRoleName = "ServiceCenterAdmin" },
+                new UserRole { UserRoleId = CASHIER_ROLE_ID, UserRoleName = "Cashier" },
+                new UserRole { UserRoleId = DATA_OPERATOR_ROLE_ID, UserRoleName = "DataOperator" }
             );
                 await context.SaveChangesAsync();
             }
 
             if (!context.Users.Any())
             {
+                // Get the SuperAdmin role to ensure we're using the correct UserRoleId
+                var superAdminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "SuperAdmin");
+
+                if (superAdminRole == null)
+                {
+                    throw new InvalidOperationException("SuperAdmin role not found. Please ensure user roles are seeded first.");
+                }
+
                 var superAdmin = new User
                 {
                     FirstName = "Super",
                     LastName = "Admin",
                     Email = "superadmin@example.com",
-                    UserRoleId = 1 // SuperAdmin
+                    UserRoleId = superAdminRole.UserRoleId // Use the actual SuperAdmin role ID
                 };
 
                 // Explicitly hash the password with BCrypt for login
@@ -35,10 +52,74 @@ namespace Vpassbackend.Data
                 superAdmin.Password = BCrypt.Net.BCrypt.HashPassword(plainPassword);
 
                 context.Users.Add(superAdmin);
+
+                // Add sample users for other roles
+                var adminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "Admin");
+                var serviceCenterAdminRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "ServiceCenterAdmin");
+                var cashierRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "Cashier");
+                var dataOperatorRole = await context.UserRoles
+                    .FirstOrDefaultAsync(r => r.UserRoleName == "DataOperator");
+
+                if (adminRole != null)
+                {
+                    var admin = new User
+                    {
+                        FirstName = "System",
+                        LastName = "Admin",
+                        Email = "admin@example.com",
+                        UserRoleId = adminRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("Admin@123")
+                    };
+                    context.Users.Add(admin);
+                }
+
+                if (serviceCenterAdminRole != null)
+                {
+                    var serviceCenterAdmin = new User
+                    {
+                        FirstName = "Service Center",
+                        LastName = "Manager",
+                        Email = "serviceadmin@example.com",
+                        UserRoleId = serviceCenterAdminRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123")
+                    };
+                    context.Users.Add(serviceCenterAdmin);
+                }
+
+                if (cashierRole != null)
+                {
+                    var cashier = new User
+                    {
+                        FirstName = "John",
+                        LastName = "Cashier",
+                        Email = "cashier@example.com",
+                        UserRoleId = cashierRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("Cashier@123")
+                    };
+                    context.Users.Add(cashier);
+                }
+
+                if (dataOperatorRole != null)
+                {
+                    var dataOperator = new User
+                    {
+                        FirstName = "Data",
+                        LastName = "Operator",
+                        Email = "dataoperator@example.com",
+                        UserRoleId = dataOperatorRole.UserRoleId,
+                        Password = BCrypt.Net.BCrypt.HashPassword("DataOp@123")
+                    };
+                    context.Users.Add(dataOperator);
+                }
+
                 await context.SaveChangesAsync();
 
                 // Log the user creation for debugging
                 Console.WriteLine($"SuperAdmin user created with email: {superAdmin.Email}");
+                Console.WriteLine($"Sample users created for all user roles.");
             }
             else
             {
@@ -361,9 +442,9 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle1.VehicleId,
                                 ServiceId = oilChangeService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddMonths(3),
+                                ReminderDate = DateTime.UtcNow.AddDays(5), // Due in 5 days
                                 IntervalMonths = 6,
-                                NotifyBeforeDays = 14,
+                                NotifyBeforeDays = 14, // Will trigger notification now
                                 Notes = "Regular oil change reminder",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -377,9 +458,9 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle1.VehicleId,
                                 ServiceId = tireRotationService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddMonths(2),
+                                ReminderDate = DateTime.UtcNow.AddDays(-2), // Overdue by 2 days
                                 IntervalMonths = 6,
-                                NotifyBeforeDays = 7,
+                                NotifyBeforeDays = 7, // Will trigger notification now
                                 Notes = "Tire rotation every 10,000 miles",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -393,10 +474,28 @@ namespace Vpassbackend.Data
                             {
                                 VehicleId = vehicle2.VehicleId,
                                 ServiceId = inspectionService.ServiceId,
-                                ReminderDate = DateTime.UtcNow.AddDays(10),
+                                ReminderDate = DateTime.UtcNow.AddDays(25), // Due in 25 days
                                 IntervalMonths = 12,
-                                NotifyBeforeDays = 30,
+                                NotifyBeforeDays = 30, // Will trigger notification now
                                 Notes = "Annual vehicle inspection",
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            });
+                        }
+
+                        // Add a brake service reminder that's overdue
+                        var brakeService = services.FirstOrDefault(s => s.ServiceName == "Brake Replacement");
+                        if (vehicle2 != null && brakeService != null)
+                        {
+                            context.ServiceReminders.Add(new ServiceReminder
+                            {
+                                VehicleId = vehicle2.VehicleId,
+                                ServiceId = brakeService.ServiceId,
+                                ReminderDate = DateTime.UtcNow.AddDays(-10), // Overdue by 10 days
+                                IntervalMonths = 12,
+                                NotifyBeforeDays = 7, // Will trigger notification now
+                                Notes = "Brake safety check - important!",
                                 IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
@@ -412,6 +511,170 @@ namespace Vpassbackend.Data
                     Console.WriteLine($"Error seeding service reminders: {ex.Message}");
                 }
             }
+
+            // Add sample notifications based on service reminders if none exist
+            if (!context.Notifications.Any())
+            {
+                try
+                {
+                    var serviceReminders = await context.ServiceReminders
+                        .Include(sr => sr.Vehicle)
+                            .ThenInclude(v => v.Customer)
+                        .Include(sr => sr.Service)
+                        .Where(sr => sr.IsActive)
+                        .ToListAsync();
+
+                    if (serviceReminders.Count > 0)
+                    {
+                        var today = DateTime.UtcNow.Date;
+
+                        foreach (var reminder in serviceReminders)
+                        {
+                            if (reminder.Vehicle?.Customer != null)
+                            {
+                                var daysUntilDue = (reminder.ReminderDate.Date - today).Days;
+
+                                // Create notifications for reminders that are due or coming up
+                                if (daysUntilDue <= reminder.NotifyBeforeDays)
+                                {
+                                    var priorityLevel = daysUntilDue <= 0 ? "Critical" :
+                                                      daysUntilDue <= 3 ? "High" : "Medium";
+
+                                    var title = daysUntilDue <= 0
+                                        ? $"{reminder.Service?.ServiceName ?? "Service"} Overdue"
+                                        : $"{reminder.Service?.ServiceName ?? "Service"} Due Soon";
+
+                                    var message = daysUntilDue <= 0
+                                        ? $"Your {reminder.Vehicle.RegistrationNumber} is overdue for {reminder.Service?.ServiceName ?? "service"}. Please schedule an appointment immediately."
+                                        : $"Your {reminder.Vehicle.RegistrationNumber} needs {reminder.Service?.ServiceName ?? "service"} in {daysUntilDue} day{(daysUntilDue == 1 ? "" : "s")}. Please schedule an appointment.";
+
+                                    var notification = new Notification
+                                    {
+                                        CustomerId = reminder.Vehicle.CustomerId,
+                                        Title = title,
+                                        Message = message,
+                                        Type = "service_reminder",
+                                        Priority = priorityLevel,
+                                        PriorityColor = priorityLevel switch
+                                        {
+                                            "Critical" => "#DC2626", // Red
+                                            "High" => "#EA580C",     // Orange
+                                            "Medium" => "#3B82F6",   // Blue
+                                            _ => "#3B82F6"           // Default blue
+                                        },
+                                        ServiceReminderId = reminder.ServiceReminderId,
+                                        VehicleId = reminder.VehicleId,
+                                        VehicleRegistrationNumber = reminder.Vehicle.RegistrationNumber,
+                                        VehicleBrand = reminder.Vehicle.Brand,
+                                        VehicleModel = reminder.Vehicle.Model,
+                                        ServiceName = reminder.Service?.ServiceName,
+                                        CustomerName = $"{reminder.Vehicle.Customer.FirstName} {reminder.Vehicle.Customer.LastName}",
+                                        CreatedAt = DateTime.UtcNow,
+                                        SentAt = DateTime.UtcNow,
+                                        IsRead = false
+                                    };
+
+                                    context.Notifications.Add(notification);
+                                }
+                            }
+                        }
+
+                        // Also create some general notifications for demonstration
+                        var testCustomer = await context.Customers.FirstOrDefaultAsync();
+                        if (testCustomer != null)
+                        {
+                            // Welcome notification
+                            context.Notifications.Add(new Notification
+                            {
+                                CustomerId = testCustomer.CustomerId,
+                                Title = "Welcome to Vehicle Service System",
+                                Message = "Welcome! Your account has been set up successfully. You'll receive notifications about your vehicle service requirements here.",
+                                Type = "general",
+                                Priority = "Low",
+                                PriorityColor = "#10B981",
+                                CustomerName = $"{testCustomer.FirstName} {testCustomer.LastName}",
+                                CreatedAt = DateTime.UtcNow.AddDays(-1),
+                                SentAt = DateTime.UtcNow.AddDays(-1),
+                                IsRead = true,
+                                ReadAt = DateTime.UtcNow.AddHours(-2)
+                            });
+
+                            // System update notification
+                            context.Notifications.Add(new Notification
+                            {
+                                CustomerId = testCustomer.CustomerId,
+                                Title = "New Feature: Automatic Service Reminders",
+                                Message = "We've added automatic service reminders to help you stay on top of your vehicle maintenance. You'll receive notifications when services are due.",
+                                Type = "general",
+                                Priority = "Medium",
+                                PriorityColor = "#3B82F6",
+                                CustomerName = $"{testCustomer.FirstName} {testCustomer.LastName}",
+                                CreatedAt = DateTime.UtcNow.AddHours(-6),
+                                SentAt = DateTime.UtcNow.AddHours(-6),
+                                IsRead = false
+                            });
+                        }
+
+                        await context.SaveChangesAsync();
+                        Console.WriteLine($"Sample notifications created from service reminders");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error seeding notifications: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Helper method to create a user with a specific role
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="firstName">User's first name</param>
+        /// <param name="lastName">User's last name</param>
+        /// <param name="email">User's email</param>
+        /// <param name="password">User's password (will be hashed)</param>
+        /// <param name="userRoleId">The ID of the user role</param>
+        /// <returns>The created user</returns>
+        public static User CreateUserWithRole(ApplicationDbContext context, string firstName, string lastName,
+            string email, string password, int userRoleId)
+        {
+            var user = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                UserRoleId = userRoleId,
+                Password = BCrypt.Net.BCrypt.HashPassword(password)
+            };
+
+            context.Users.Add(user);
+            return user;
+        }
+
+        /// <summary>
+        /// Helper method to get a user role by name
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="roleName">Name of the role</param>
+        /// <returns>UserRole if found, null otherwise</returns>
+        public static async Task<UserRole?> GetUserRoleByNameAsync(ApplicationDbContext context, string roleName)
+        {
+            return await context.UserRoles.FirstOrDefaultAsync(r => r.UserRoleName == roleName);
+        }
+
+        /// <summary>
+        /// Helper method to get users by role
+        /// </summary>
+        /// <param name="context">Database context</param>
+        /// <param name="userRoleId">The user role ID</param>
+        /// <returns>List of users with the specified role</returns>
+        public static async Task<List<User>> GetUsersByRoleAsync(ApplicationDbContext context, int userRoleId)
+        {
+            return await context.Users
+                .Include(u => u.UserRole)
+                .Where(u => u.UserRoleId == userRoleId)
+                .ToListAsync();
         }
     }
 }

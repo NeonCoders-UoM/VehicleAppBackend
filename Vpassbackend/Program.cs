@@ -3,8 +3,6 @@ using Vpassbackend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Routing;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,33 +11,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure CORS for development - Allow any origin during development
+// Configure CORS - Update with your frontend URLs
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin", policy =>
-    {
-        // For Flutter development and troubleshooting, we're setting a very permissive CORS policy
-        // WARNING: This is only for development! In production, restrict this to specific origins.
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .WithExposedHeaders("Content-Disposition"); // For file downloads
-
-        // NOTE: AllowAnyOrigin and AllowCredentials cannot be used together
-        // If you need credentials, use specific origins instead of AllowAnyOrigin
-    });
-
-    // Add a more restrictive policy for production use
-    options.AddPolicy("Production", policy =>
-    {
-        policy.WithOrigins(
-                "http://localhost:2027",  // Flutter web
-                "http://127.0.0.1:2027",  // Flutter alternative
-                "https://yourproductionsite.com")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
+    options.AddPolicy("AllowAnyOrigin",
+        policy =>
+        {
+            policy.WithOrigins(
+                    "http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // If using cookies
+        });
 });
 
 // Add services
@@ -54,10 +37,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "DefaultIssuer",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "DefaultAudience",
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultKeyMustBeLongEnoughForSecurity123456")),
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
@@ -147,32 +130,6 @@ app.UseCors("AllowAnyOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Set up controllers with default routes
 app.MapControllers();
-
-// Configure routing options - unfortunately MapControllers doesn't take options directly
-RouteOptions routeOptions = app.Services.GetRequiredService<IOptions<RouteOptions>>().Value;
-routeOptions.LowercaseUrls = true; // This helps with case sensitivity
-
-// Global exception handler
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next();
-
-        // If a 404 occurs, it might be due to case sensitivity in routes
-        if (context.Response.StatusCode == 404 && context.Request.Path.StartsWithSegments("/api"))
-        {
-            // Log the 404 for debugging
-            Console.WriteLine($"404 Error: {context.Request.Method} {context.Request.Path}");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Global error handler caught: {ex.Message}");
-        await next();
-    }
-});
 
 app.Run();

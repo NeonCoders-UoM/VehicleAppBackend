@@ -31,6 +31,7 @@ namespace Vpassbackend.Controllers
                     c.LastName,
                     c.Email,
                     c.PhoneNumber,
+                    c.Address,
                     c.LoyaltyPoints
                 }).ToList();
 
@@ -38,7 +39,7 @@ namespace Vpassbackend.Controllers
         }
 
         // GET: api/Customers/5
-        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
+        // [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCustomerById(int id)
         {
@@ -66,25 +67,8 @@ namespace Vpassbackend.Controllers
         }
 
         // PUT: api/Customers/5
-        [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, CustomerUpdateDto dto)
-        {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null) return NotFound("Customer not found.");
-
-            customer.FirstName = dto.FirstName;
-            customer.LastName = dto.LastName;
-            customer.Address = dto.Address;
-            customer.PhoneNumber = dto.PhoneNumber;
-            customer.NIC = dto.NIC;
-
-            await _context.SaveChangesAsync();
-            return Ok("Profile updated.");
-        }
-
         // POST: api/Customers/{customerId}/vehicles
-        [Authorize]
+
         [HttpPost("{customerId}/vehicles")]
         public async Task<IActionResult> RegisterVehicle(int customerId, VehicleRegistrationDto dto)
         {
@@ -123,8 +107,7 @@ namespace Vpassbackend.Controllers
             );
         }
 
-        // GET: api/Customers/{customerId}/vehicles
-        [Authorize]
+        [Authorize]// GET: api/Customers/{customerId}/vehicles
         [HttpGet("{customerId}/vehicles")]
         public async Task<IActionResult> GetCustomerVehicles(int customerId)
         {

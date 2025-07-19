@@ -24,6 +24,11 @@ namespace Vpassbackend.Data
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
         public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
+        public DbSet<Feedback> Feedbacks { get; set; }
+        public DbSet<FuelEfficiency> FuelEfficiencies { get; set; }
+        public DbSet<ClosureSchedule> ClosureSchedules { get; set; }
+        public DbSet<ServiceAvailability> ServiceAvailabilities { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +109,56 @@ namespace Vpassbackend.Data
                 .WithMany(s => s.ServiceReminders)
                 .HasForeignKey(sr => sr.ServiceId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Feedback relationships
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.Customer)
+                .WithMany()
+                .HasForeignKey(f => f.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.ServiceCenter)
+                .WithMany()
+                .HasForeignKey(f => f.ServiceCenterId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.Vehicle)
+                .WithMany()
+                .HasForeignKey(f => f.VehicleId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<FuelEfficiency>()
+                .HasOne(fe => fe.Vehicle)
+                .WithMany(v => v.FuelEfficiencies)
+                .HasForeignKey(fe => fe.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Customer)
+                .WithMany()
+                .HasForeignKey(n => n.CustomerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.ServiceReminder)
+                .WithMany()
+                .HasForeignKey(n => n.ServiceReminderId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Vehicle)
+                .WithMany()
+                .HasForeignKey(n => n.VehicleId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Appointment)
+                .WithMany()
+                .HasForeignKey(n => n.AppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }

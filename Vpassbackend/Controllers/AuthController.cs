@@ -33,8 +33,15 @@ namespace Vpassbackend.Controllers
                 return Unauthorized("Invalid credentials");
 
             var token = _tokenService.CreateToken(user, user.UserRole.UserRoleName);
-            return Ok(new { token });
+            return Ok(new
+            {
+                token,
+                userId = user.UserId,
+                userRole = user.UserRole.UserRoleName,
+                userRoleId = user.UserRoleId // Explicitly include UserRoleId in response
+            });
         }
+
         [HttpPost("login-customer")]
         [AllowAnonymous]
         public async Task<IActionResult> LoginCustomer(CustomerLoginDto dto)
@@ -53,10 +60,50 @@ namespace Vpassbackend.Controllers
 
             var token = _tokenService.CreateTokenForCustomer(customer);
 
-            return Ok(new { token });
+            // ✅ Include the CustomerId in your response
+            return Ok(new { token, customerId = customer.CustomerId });
         }
 
 
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(UserRegisterDto dto)
+        {
+            // Check if email already exists
+            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+                return BadRequest("Email already registered.");
+
+            // Validate that the UserRoleId exists
+            var userRole = await _context.UserRoles
+                .FirstOrDefaultAsync(r => r.UserRoleId == dto.UserRoleId);
+
+            if (userRole == null)
+                return BadRequest($"Invalid UserRoleId: {dto.UserRoleId}. Role does not exist.");
+
+            // Create new user with the specified role
+            var user = new User
+            {
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                UserRoleId = dto.UserRoleId // Use UserRoleId from DTO
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            // Log the user creation with role information
+            Console.WriteLine($"User created: {user.Email} with UserRoleId: {user.UserRoleId} ({userRole.UserRoleName})");
+
+            return Ok(new
+            {
+                message = "User registered successfully",
+                userId = user.UserId,
+                email = user.Email,
+                userRoleId = user.UserRoleId,
+                userRoleName = userRole.UserRoleName
+            });
+        }
 
         [HttpPost("register-customer")]
         [AllowAnonymous]
@@ -147,6 +194,202 @@ namespace Vpassbackend.Controllers
             return Ok("OTP resent successfully.");
         }
 
+        [HttpPut("update-customer-details")]
+        public async Task<IActionResult> UpdateCustomerDetails([FromBody] CustomerUpdateDto dto)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            if (customer == null) return NotFound("Customer not found.");
 
+            customer.FirstName = dto.FirstName;
+            customer.LastName = dto.LastName;
+            customer.PhoneNumber = dto.PhoneNumber;
+            customer.NIC = dto.NIC;
+            customer.Address = dto.Address;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Customer details updated.", customerId = customer.CustomerId });
+        }
+
+        [HttpGet("user-roles")]
+        public async Task<IActionResult> GetUserRoles()
+        {
+            var roles = await _context.UserRoles
+                .OrderBy(r => r.UserRoleId)
+                .Select(r => new
+                {
+                    userRoleId = r.UserRoleId,
+                    userRoleName = r.UserRoleName
+                })
+                .ToListAsync();
+
+            return Ok(roles);
+        }
+
+        [HttpGet("user-info/{userId}")]
+        public async Task<IActionResult> GetUserInfo(int userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRole)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+                return NotFound("User not found.");
+
+            return Ok(new
+            {
+                userId = user.UserId,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                email = user.Email,
+                userRoleId = user.UserRoleId,
+                userRoleName = user.UserRole.UserRoleName
+            });
+        }
+
+        [HttpPut("update-user-role/{userId}")]
+        [Authorize(Roles = "SuperAdmin,Admin")] // Only SuperAdmin and Admin can change roles
+        public async Task<IActionResult> UpdateUserRole(int userId, [FromBody] UpdateUserRoleDto dto)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRole)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+                return NotFound("User not found.");
+
+            // Validate that the new UserRoleId exists
+            var newUserRole = await _context.UserRoles
+                .FirstOrDefaultAsync(r => r.UserRoleId == dto.UserRoleId);
+
+            if (newUserRole == null)
+                return BadRequest($"Invalid UserRoleId: {dto.UserRoleId}. Role does not exist.");
+
+            var oldRoleName = user.UserRole.UserRoleName;
+            var oldRoleId = user.UserRoleId;
+
+            // Update the user's role
+            user.UserRoleId = dto.UserRoleId;
+            await _context.SaveChangesAsync();
+
+            // Log the role change
+            Console.WriteLine($"User role updated: {user.Email} changed from UserRoleId {oldRoleId} ({oldRoleName}) to UserRoleId {dto.UserRoleId} ({newUserRole.UserRoleName})");
+
+            return Ok(new
+            {
+                message = "User role updated successfully",
+                userId = user.UserId,
+                email = user.Email,
+                previousRole = new { userRoleId = oldRoleId, userRoleName = oldRoleName },
+                newRole = new { userRoleId = dto.UserRoleId, userRoleName = newUserRole.UserRoleName }
+            });
+        }
+
+        [HttpPost("debug-token")]
+        public IActionResult DebugToken([FromBody] string token)
+        {
+            try
+            {
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var jsonToken = handler.ReadJwtToken(token);
+
+                var claims = jsonToken.Claims.Select(c => new
+                {
+                    Type = c.Type,
+                    Value = c.Value
+                }).ToList();
+
+                return Ok(new
+                {
+                    claims = claims,
+                    userRoleId = jsonToken.Claims.FirstOrDefault(c => c.Type == "UserRoleId")?.Value,
+                    userId = jsonToken.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value,
+                    role = jsonToken.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Invalid token: {ex.Message}");
+            }
+        }
+
+        [HttpGet("debug-users")]
+        public async Task<IActionResult> DebugUsers()
+        {
+            try
+            {
+                var users = await _context.Users
+                    .Include(u => u.UserRole)
+                    .Select(u => new
+                    {
+                        userId = u.UserId,
+                        firstName = u.FirstName,
+                        lastName = u.LastName,
+                        email = u.Email,
+                        userRoleId = u.UserRoleId,
+                        userRoleName = u.UserRole != null ? u.UserRole.UserRoleName : "NULL",
+                        hasPassword = !string.IsNullOrEmpty(u.Password),
+                        passwordLength = u.Password != null ? u.Password.Length : 0
+                    })
+                    .ToListAsync();
+
+                var userRoles = await _context.UserRoles.ToListAsync();
+
+                return Ok(new
+                {
+                    totalUsers = users.Count,
+                    totalRoles = userRoles.Count,
+                    users = users,
+                    roles = userRoles.Select(r => new { r.UserRoleId, r.UserRoleName })
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Debug error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("test-password")]
+        public async Task<IActionResult> TestPassword([FromBody] TestPasswordDto dto)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserRole)
+                    .FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+                if (user == null)
+                {
+                    return Ok(new
+                    {
+                        found = false,
+                        message = "User not found with this email"
+                    });
+                }
+
+                var passwordMatches = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+
+                return Ok(new
+                {
+                    found = true,
+                    passwordMatches = passwordMatches,
+                    user = new
+                    {
+                        userId = user.UserId,
+                        email = user.Email,
+                        firstName = user.FirstName,
+                        lastName = user.LastName,
+                        userRoleId = user.UserRoleId,
+                        userRoleName = user.UserRole?.UserRoleName,
+                        hasPassword = !string.IsNullOrEmpty(user.Password),
+                        passwordHash = user.Password?.Substring(0, Math.Min(20, user.Password.Length)) + "..."
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Test error: {ex.Message}");
+            }
+        }
     }
 }

@@ -6,11 +6,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Vpassbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialCreateWithNotificationsFixed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "ClosureSchedules",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ServiceCenterId = table.Column<int>(type: "int", nullable: false),
+                    WeekNumber = table.Column<int>(type: "int", nullable: false),
+                    Day = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClosureSchedules", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Customers",
                 columns: table => new
@@ -48,6 +63,23 @@ namespace Vpassbackend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_EmergencyCallCenters", x => x.CenterId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ServiceAvailabilities",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ServiceCenterId = table.Column<int>(type: "int", nullable: false),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    WeekNumber = table.Column<int>(type: "int", nullable: false),
+                    Day = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsAvailable = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServiceAvailabilities", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -286,6 +318,63 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Feedbacks",
+                columns: table => new
+                {
+                    FeedbackId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    ServiceCenterId = table.Column<int>(type: "int", nullable: false),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    Rating = table.Column<int>(type: "int", nullable: false),
+                    Comments = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    FeedbackDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ServiceDate = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Feedbacks", x => x.FeedbackId);
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_ServiceCenters_ServiceCenterId",
+                        column: x => x.ServiceCenterId,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
+                    table.ForeignKey(
+                        name: "FK_Feedbacks_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FuelEfficiencies",
+                columns: table => new
+                {
+                    FuelEfficiencyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
+                    FuelAmount = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FuelEfficiencies", x => x.FuelEfficiencyId);
+                    table.ForeignKey(
+                        name: "FK_FuelEfficiencies_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -399,6 +488,58 @@ namespace Vpassbackend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Notifications",
+                columns: table => new
+                {
+                    NotificationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Priority = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    PriorityColor = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ScheduledFor = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ServiceReminderId = table.Column<int>(type: "int", nullable: true),
+                    VehicleId = table.Column<int>(type: "int", nullable: true),
+                    AppointmentId = table.Column<int>(type: "int", nullable: true),
+                    VehicleRegistrationNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    VehicleBrand = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    VehicleModel = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ServiceName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    CustomerName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notifications", x => x.NotificationId);
+                    table.ForeignKey(
+                        name: "FK_Notifications_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
+                        principalTable: "Appointments",
+                        principalColumn: "AppointmentId");
+                    table.ForeignKey(
+                        name: "FK_Notifications_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId");
+                    table.ForeignKey(
+                        name: "FK_Notifications_ServiceReminders_ServiceReminderId",
+                        column: x => x.ServiceReminderId,
+                        principalTable: "ServiceReminders",
+                        principalColumn: "ServiceReminderId");
+                    table.ForeignKey(
+                        name: "FK_Notifications_Vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "Vehicles",
+                        principalColumn: "VehicleId");
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_CustomerId",
                 table: "Appointments",
@@ -430,8 +571,48 @@ namespace Vpassbackend.Migrations
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_CustomerId",
+                table: "Feedbacks",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_ServiceCenterId",
+                table: "Feedbacks",
+                column: "ServiceCenterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Feedbacks_VehicleId",
+                table: "Feedbacks",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FuelEfficiencies_VehicleId",
+                table: "FuelEfficiencies",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Invoices_VehicleId",
                 table: "Invoices",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_AppointmentId",
+                table: "Notifications",
+                column: "AppointmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_CustomerId",
+                table: "Notifications",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_ServiceReminderId",
+                table: "Notifications",
+                column: "ServiceReminderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_VehicleId",
+                table: "Notifications",
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
@@ -495,10 +676,10 @@ namespace Vpassbackend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Appointments");
+                name: "BorderPoints");
 
             migrationBuilder.DropTable(
-                name: "BorderPoints");
+                name: "ClosureSchedules");
 
             migrationBuilder.DropTable(
                 name: "Documents");
@@ -507,7 +688,19 @@ namespace Vpassbackend.Migrations
                 name: "EmergencyCallCenters");
 
             migrationBuilder.DropTable(
+                name: "Feedbacks");
+
+            migrationBuilder.DropTable(
+                name: "FuelEfficiencies");
+
+            migrationBuilder.DropTable(
+                name: "Notifications");
+
+            migrationBuilder.DropTable(
                 name: "PaymentLogs");
+
+            migrationBuilder.DropTable(
+                name: "ServiceAvailabilities");
 
             migrationBuilder.DropTable(
                 name: "ServiceCenterCheckInPoints");
@@ -516,22 +709,25 @@ namespace Vpassbackend.Migrations
                 name: "ServiceCenterServices");
 
             migrationBuilder.DropTable(
-                name: "ServiceReminders");
+                name: "VehicleServiceHistories");
 
             migrationBuilder.DropTable(
-                name: "VehicleServiceHistories");
+                name: "Appointments");
+
+            migrationBuilder.DropTable(
+                name: "ServiceReminders");
 
             migrationBuilder.DropTable(
                 name: "Invoices");
 
             migrationBuilder.DropTable(
-                name: "Services");
+                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "ServiceCenters");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Services");
 
             migrationBuilder.DropTable(
                 name: "Vehicles");

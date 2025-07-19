@@ -39,5 +39,6 @@ namespace Vpassbackend.Models
         public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
         public ICollection<VehicleServiceHistory> ServiceHistory { get; set; } = new List<VehicleServiceHistory>();
         public ICollection<ServiceReminder> ServiceReminders { get; set; } = new List<ServiceReminder>();
+        public ICollection<FuelEfficiency> FuelEfficiencies { get; set; } = new List<FuelEfficiency>();
     }
 }

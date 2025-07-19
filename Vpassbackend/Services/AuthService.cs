@@ -21,7 +21,9 @@ namespace Vpassbackend.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, roleName)
+                new Claim(ClaimTypes.Role, roleName),
+                new Claim("UserRoleId", user.UserRoleId.ToString()), // Add UserRoleId to token
+                new Claim("UserId", user.UserId.ToString()) // Add UserId for easier access
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));

@@ -11,9 +11,6 @@ namespace Vpassbackend.Models
         [ForeignKey("Vehicle")]
         public int VehicleId { get; set; }
 
-        [ForeignKey("Service")]
-        public int ServiceId { get; set; }
-
         [ForeignKey("ServiceCenter")]
         public int Station_id { get; set; }
 
@@ -33,12 +30,14 @@ namespace Vpassbackend.Models
 
         // Navigation properties
         public Vehicle Vehicle { get; set; }
-        public Service Service { get; set; }
         public ServiceCenter ServiceCenter { get; set; }
         public Customer Customer { get; set; }
 
         // Calculated price at the time of appointment
         [Column(TypeName = "decimal(10, 2)")]
         public decimal? AppointmentPrice { get; set; }
+
+        // Many-to-many relationship for selected services
+        public ICollection<AppointmentService> AppointmentServices { get; set; } = new List<AppointmentService>();
     }
 }

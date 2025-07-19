@@ -193,7 +193,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Oil Change",
                         Description = "Standard oil change service with filter replacement",
                         BasePrice = 49.99m,
-                        LoyaltyPoints = 5,
                         Category = "Maintenance"
                     },
                     new Service
@@ -201,7 +200,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Tire Rotation",
                         Description = "Complete tire rotation service",
                         BasePrice = 29.99m,
-                        LoyaltyPoints = 3,
                         Category = "Maintenance"
                     },
                     new Service
@@ -209,7 +207,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Full Inspection",
                         Description = "Comprehensive vehicle inspection service",
                         BasePrice = 89.99m,
-                        LoyaltyPoints = 10,
                         Category = "Inspection"
                     },
                     new Service
@@ -217,7 +214,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Brake Replacement",
                         Description = "Front and rear brake pad replacement",
                         BasePrice = 199.99m,
-                        LoyaltyPoints = 20,
                         Category = "Repair"
                     },
                     new Service
@@ -225,7 +221,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Engine Tune-Up",
                         Description = "Complete engine tune-up and optimization",
                         BasePrice = 149.99m,
-                        LoyaltyPoints = 15,
                         Category = "Performance"
                     },
                     new Service
@@ -233,7 +228,6 @@ namespace Vpassbackend.Data
                         ServiceName = "AC Service",
                         Description = "Air conditioning system check and recharge",
                         BasePrice = 79.99m,
-                        LoyaltyPoints = 8,
                         Category = "Comfort"
                     },
                     new Service
@@ -241,7 +235,6 @@ namespace Vpassbackend.Data
                         ServiceName = "Transmission Flush",
                         Description = "Complete transmission fluid flush and replacement",
                         BasePrice = 129.99m,
-                        LoyaltyPoints = 12,
                         Category = "Maintenance"
                     }
                 };

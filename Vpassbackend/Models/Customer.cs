@@ -35,6 +35,15 @@ namespace Vpassbackend.Models
         public string? OtpCode { get; set; }
         public DateTime? OtpExpiry { get; set; }
 
+        // Push notification fields
+        [MaxLength(300)]
+        public string? DeviceToken { get; set; }
 
+        public DateTime? LastTokenUpdate { get; set; }
+
+        [MaxLength(50)]
+        public string? Platform { get; set; }
+
+        public bool PushNotificationsEnabled { get; set; } = false;
     }
 }

@@ -1,7 +1,29 @@
+# Ignore build output folders
+Vpassbackend/bin/
+Vpassbackend/obj/
+
+# Ignore all DLLs, EXEs, PDBs
 *.dll
+*.exe
+*.pdb
+
 # Ignore user secrets and sensitive config
 appsettings.Development.json
 appsettings.Local.json
 
-# Ignore Visual Studio temporary files
+# Ignore Visual Studio and JetBrains IDE files
 .vs/
+.idea/
+.vscode/
+
+# Ignore cache and temporary files
+*.cache
+*.log
+*.tmp
+*.user
+*.suo
+*.csproj.user
+
+# Optional: ignore system files
+Thumbs.db
+.DS_Store

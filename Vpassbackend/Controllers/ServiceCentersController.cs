@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Vpassbackend.Data;
 using Vpassbackend.DTOs;
 using Vpassbackend.Models;
+using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
@@ -14,10 +15,12 @@ namespace Vpassbackend.Controllers
     public class ServiceCentersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILoyaltyPointsService _loyaltyPointsService;
 
-        public ServiceCentersController(ApplicationDbContext context)
+        public ServiceCentersController(ApplicationDbContext context, ILoyaltyPointsService loyaltyPointsService)
         {
             _context = context;
+            _loyaltyPointsService = loyaltyPointsService;
         }
 
         // GET: api/ServiceCenters
@@ -245,21 +248,27 @@ namespace Vpassbackend.Controllers
             var serviceCenterServices = await _context.ServiceCenterServices
                 .Include(scs => scs.Service)
                 .Include(scs => scs.ServiceCenter)
+                .Include(scs => scs.Package)
                 .Where(scs => scs.Station_id == id)
                 .Select(scs => new ServiceCenterServiceDTO
                 {
                     ServiceCenterServiceId = scs.ServiceCenterServiceId,
                     Station_id = scs.Station_id,
                     ServiceId = scs.ServiceId,
+                    PackageId = scs.PackageId,
                     CustomPrice = scs.CustomPrice,
+                    ServiceCenterBasePrice = scs.BasePrice,
+                    ServiceCenterLoyaltyPoints = scs.LoyaltyPoints,
                     IsAvailable = scs.IsAvailable,
                     Notes = scs.Notes,
                     ServiceName = scs.Service.ServiceName,
                     ServiceDescription = scs.Service.Description,
-                    BasePrice = scs.Service.BasePrice,
-                    LoyaltyPoints = scs.Service.LoyaltyPoints,
+                    ServiceBasePrice = scs.Service.BasePrice,
                     Category = scs.Service.Category,
-                    StationName = scs.ServiceCenter.Station_name
+                    StationName = scs.ServiceCenter.Station_name,
+                    PackageName = scs.Package != null ? scs.Package.PackageName : null,
+                    PackagePercentage = scs.Package != null ? scs.Package.Percentage : null,
+                    PackageDescription = scs.Package != null ? scs.Package.Description : null
                 })
                 .ToListAsync();
 
@@ -286,6 +295,21 @@ namespace Vpassbackend.Controllers
                 return BadRequest("Invalid service ID");
             }
 
+            // Validate package if provided
+            Package? package = null;
+            if (createDto.PackageId.HasValue)
+            {
+                package = await _context.Packages.FindAsync(createDto.PackageId.Value);
+                if (package == null)
+                {
+                    return BadRequest("Invalid package ID");
+                }
+                if (!package.IsActive)
+                {
+                    return BadRequest("Selected package is not active");
+                }
+            }
+
             // Check if the relation already exists
             bool alreadyExists = await _context.ServiceCenterServices
                 .AnyAsync(scs => scs.ServiceId == createDto.ServiceId && scs.Station_id == id);
@@ -295,15 +319,25 @@ namespace Vpassbackend.Controllers
                 return BadRequest("This service is already offered by this service center");
             }
 
+            // Calculate base price (use custom price if provided, otherwise use service base price)
+            decimal basePrice = createDto.ServiceCenterBasePrice ?? createDto.CustomPrice ?? service.BasePrice ?? 0;
+            
+            // Calculate loyalty points based on package percentage
+            int loyaltyPoints = _loyaltyPointsService.CalculateLoyaltyPoints(basePrice, package?.Percentage);
+
             var serviceCenterService = new ServiceCenterService
             {
                 Station_id = id,
                 ServiceId = createDto.ServiceId,
+                PackageId = createDto.PackageId,
                 CustomPrice = createDto.CustomPrice,
+                BasePrice = basePrice,
+                LoyaltyPoints = loyaltyPoints,
                 IsAvailable = createDto.IsAvailable,
                 Notes = createDto.Notes,
                 ServiceCenter = serviceCenter,
-                Service = service
+                Service = service,
+                Package = package
             };
 
             _context.ServiceCenterServices.Add(serviceCenterService);
@@ -314,15 +348,20 @@ namespace Vpassbackend.Controllers
                 ServiceCenterServiceId = serviceCenterService.ServiceCenterServiceId,
                 Station_id = serviceCenterService.Station_id,
                 ServiceId = serviceCenterService.ServiceId,
+                PackageId = serviceCenterService.PackageId,
                 CustomPrice = serviceCenterService.CustomPrice,
+                ServiceCenterBasePrice = serviceCenterService.BasePrice,
+                ServiceCenterLoyaltyPoints = serviceCenterService.LoyaltyPoints,
                 IsAvailable = serviceCenterService.IsAvailable,
                 Notes = serviceCenterService.Notes,
                 ServiceName = service.ServiceName,
                 ServiceDescription = service.Description,
-                BasePrice = service.BasePrice,
-                LoyaltyPoints = service.LoyaltyPoints,
+                ServiceBasePrice = service.BasePrice,
                 Category = service.Category,
-                StationName = serviceCenter.Station_name
+                StationName = serviceCenter.Station_name,
+                PackageName = package != null ? package.PackageName : null,
+                PackagePercentage = package != null ? package.Percentage : null,
+                PackageDescription = package != null ? package.Description : null
             };
 
             return CreatedAtAction("GetServiceCenterService",

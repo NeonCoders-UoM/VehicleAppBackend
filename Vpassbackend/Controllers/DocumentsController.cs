@@ -5,6 +5,8 @@ using Vpassbackend.Services;
 using Vpassbackend.Data;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
+using Vpassbackend.DTOs;
+
 
 namespace Vpassbackend.Controllers
 {
@@ -25,100 +27,93 @@ namespace Vpassbackend.Controllers
         public IActionResult Ping() => Ok("API is alive");
 
         [HttpPost("upload")]
-        public async Task<IActionResult> Upload(
-            [FromForm] IFormFile file,
-            [FromForm] int customerId,
-            [FromForm] int documentType,
-            [FromForm] int? vehicleId,
-            [FromForm] DateTime? expirationDate,
-            [FromForm] string? displayName)
+    public async Task<IActionResult> Upload([FromForm] DocumentUploadRequest dto)
+    {
+        if (dto.File == null || dto.File.Length == 0)
+            return BadRequest("File is required");
+
+        if (!Enum.IsDefined(typeof(DocumentType), dto.DocumentType))
+            return BadRequest("Invalid document type");
+
+        var docTypeEnum = (DocumentType)dto.DocumentType;
+
+        if (DocumentTypeHelper.HasExpiration(docTypeEnum) && dto.ExpirationDate == null)
+            return BadRequest("Expiration date is required for this document type");
+
+        if (!DocumentTypeHelper.HasExpiration(docTypeEnum))
+            dto.ExpirationDate = null;
+
+        if (docTypeEnum == DocumentType.DriversLicense)
         {
-            if (file == null || file.Length == 0)
-                return BadRequest("File is required");
-
-            if (!Enum.IsDefined(typeof(DocumentType), documentType))
-                return BadRequest("Invalid document type");
-
-            var docTypeEnum = (DocumentType)documentType;
-
-            if (DocumentTypeHelper.HasExpiration(docTypeEnum) && expirationDate == null)
-                return BadRequest("Expiration date is required for this document type");
-
-            if (!DocumentTypeHelper.HasExpiration(docTypeEnum))
-                expirationDate = null;
-
-            // Validate customer-level constraint: only one DriversLicense per customer
-            if (docTypeEnum == DocumentType.DriversLicense)
-            {
-                var existingDriversLicense = await _context.Documents
-                    .AnyAsync(d => d.CustomerId == customerId && d.DocumentType == DocumentType.DriversLicense);
-                if (existingDriversLicense)
-                    return BadRequest("Customer already has a Driver's License.");
-            }
-
-            // Validate vehicle-level constraints: only one of each document type (except WarrantyDocument)
-            if (vehicleId.HasValue && docTypeEnum != DocumentType.WarrantyDocument)
-            {
-                var existingDocument = await _context.Documents
-                    .AnyAsync(d => d.VehicleId == vehicleId && d.DocumentType == docTypeEnum);
-                if (existingDocument)
-                    return BadRequest($"Vehicle already has a {docTypeEnum}.");
-            }
-
-            // Validate WarrantyDocument size limit
-            if (docTypeEnum == DocumentType.WarrantyDocument && vehicleId.HasValue)
-            {
-                var existingDocs = await _context.Documents
-                    .Where(d => d.DocumentType == DocumentType.WarrantyDocument && d.VehicleId == vehicleId)
-                    .ToListAsync();
-
-                long totalSize = existingDocs.Sum(d => d.FileSize);
-                long incomingFileSize = file.Length;
-
-                if (totalSize + incomingFileSize > 10 * 1024 * 1024) // 10 MB limit
-                {
-                    return BadRequest("Warranty document storage limit (10MB) exceeded for this vehicle.");
-                }
-            }
-
-            using var stream = file.OpenReadStream();
-            string url;
-            try
-            {
-                url = await _blobService.UploadFileAsync(stream, file.FileName, customerId, vehicleId, docTypeEnum.ToString());
-                // Verify blob exists
-                var blobClient = new BlobClient(new Uri(url), _blobService.Credential);
-                if (!await blobClient.ExistsAsync())
-                {
-                    Console.WriteLine($"Blob upload failed verification for {docTypeEnum}: {url}");
-                    return StatusCode(500, $"Failed to verify blob upload for {docTypeEnum}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Blob upload failed for {docTypeEnum}: {ex.Message}");
-                return StatusCode(500, $"Failed to upload blob: {ex.Message}");
-            }
-
-            var document = new Document
-            {
-                FileName = file.FileName,
-                FileUrl = url,
-                CustomerId = customerId,
-                VehicleId = vehicleId,
-                DocumentType = docTypeEnum,
-                UploadedAt = DateTime.UtcNow,
-                ExpirationDate = expirationDate,
-                DisplayName = displayName,
-                FileSize = file.Length,
-                ContentType = file.ContentType
-            };
-
-            _context.Documents.Add(document);
-            await _context.SaveChangesAsync();
-
-            return Ok(document);
+            var existingDriversLicense = await _context.Documents
+                .AnyAsync(d => d.CustomerId == dto.CustomerId && d.DocumentType == DocumentType.DriversLicense);
+            if (existingDriversLicense)
+                return BadRequest("Customer already has a Driver's License.");
         }
+
+        if (dto.VehicleId.HasValue && docTypeEnum != DocumentType.WarrantyDocument)
+        {
+            var existingDocument = await _context.Documents
+                .AnyAsync(d => d.VehicleId == dto.VehicleId && d.DocumentType == docTypeEnum);
+            if (existingDocument)
+                return BadRequest($"Vehicle already has a {docTypeEnum}.");
+        }
+
+        if (docTypeEnum == DocumentType.WarrantyDocument && dto.VehicleId.HasValue)
+        {
+            var existingDocs = await _context.Documents
+                .Where(d => d.DocumentType == DocumentType.WarrantyDocument && d.VehicleId == dto.VehicleId)
+                .ToListAsync();
+
+            long totalSize = existingDocs.Sum(d => d.FileSize);
+            long incomingFileSize = dto.File.Length;
+
+            if (totalSize + incomingFileSize > 10 * 1024 * 1024) // 10 MB
+            {
+                return BadRequest("Warranty document storage limit (10MB) exceeded for this vehicle.");
+            }
+        }
+
+        using var stream = dto.File.OpenReadStream();
+        string url;
+        try
+        {
+            url = await _blobService.UploadFileAsync(
+                stream, dto.File.FileName, dto.CustomerId, dto.VehicleId, docTypeEnum.ToString());
+
+            var blobClient = new BlobClient(new Uri(url), _blobService.Credential);
+            if (!await blobClient.ExistsAsync())
+            {
+                Console.WriteLine($"Blob upload failed verification for {docTypeEnum}: {url}");
+                return StatusCode(500, $"Failed to verify blob upload for {docTypeEnum}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Blob upload failed for {docTypeEnum}: {ex.Message}");
+            return StatusCode(500, $"Failed to upload blob: {ex.Message}");
+        }
+
+        var document = new Document
+        {
+            FileName = dto.File.FileName,
+            FileUrl = url,
+            CustomerId = dto.CustomerId,
+            VehicleId = dto.VehicleId,
+            DocumentType = docTypeEnum,
+            UploadedAt = DateTime.UtcNow,
+            ExpirationDate = dto.ExpirationDate,
+            DisplayName = dto.DisplayName,
+            FileSize = dto.File.Length,
+            ContentType = dto.File.ContentType
+        };
+
+        _context.Documents.Add(document);
+        await _context.SaveChangesAsync();
+
+        return Ok(document);
+    }
+
 
         [HttpGet("list/{customerId}")]
         public IActionResult List(int customerId)

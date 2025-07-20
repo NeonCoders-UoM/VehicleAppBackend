@@ -119,12 +119,22 @@ namespace Vpassbackend.Services
                 var appointmentWithDetails = await _context.Appointments
                     .Include(a => a.Customer)
                     .Include(a => a.Vehicle)
-                    .Include(a => a.Service)
+                    .Include(a => a.AppointmentServices)
+                        .ThenInclude(asv => asv.Service)
                     .Include(a => a.ServiceCenter)
                     .FirstOrDefaultAsync(a => a.AppointmentId == appointment.AppointmentId);
 
                 if (appointmentWithDetails?.Customer != null)
                 {
+                    // Get service names
+                    var serviceNames = appointmentWithDetails.AppointmentServices
+                        .Select(s => s.Service.ServiceName)
+                        .ToList();
+
+                    var serviceNameDisplay = serviceNames.Any()
+                        ? string.Join(", ", serviceNames)
+                        : "N/A";
+
                     var notification = new Notification
                     {
                         CustomerId = appointmentWithDetails.CustomerId,
@@ -138,7 +148,7 @@ namespace Vpassbackend.Services
                         VehicleRegistrationNumber = appointmentWithDetails.Vehicle?.RegistrationNumber,
                         VehicleBrand = appointmentWithDetails.Vehicle?.Brand,
                         VehicleModel = appointmentWithDetails.Vehicle?.Model,
-                        ServiceName = appointmentWithDetails.Service?.ServiceName,
+                        ServiceName = serviceNameDisplay,
                         CustomerName = $"{appointmentWithDetails.Customer.FirstName} {appointmentWithDetails.Customer.LastName}",
                         CreatedAt = DateTime.UtcNow,
                         SentAt = DateTime.UtcNow

@@ -382,7 +382,7 @@ namespace Vpassbackend.Controllers
             }
 
             // Check if this service has any appointments
-            bool hasAppointments = await _context.Appointments.AnyAsync(a => a.ServiceId == serviceId);
+            bool hasAppointments = await _context.AppointmentServices.AnyAsync(a => a.ServiceId == serviceId);
             if (hasAppointments)
             {
                 return BadRequest("Cannot remove service as it has associated appointments");

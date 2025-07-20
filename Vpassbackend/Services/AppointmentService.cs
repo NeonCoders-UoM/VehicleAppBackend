@@ -1,0 +1,191 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Vpassbackend.Data;
+using Vpassbackend.DTOs;
+using Vpassbackend.Models;
+
+namespace Vpassbackend.Services
+{
+    public class AppointmentService
+    {
+        private readonly ApplicationDbContext _db;
+        public AppointmentService(ApplicationDbContext db) => _db = db;
+
+        public async Task<AppointmentSummaryForCustomerDTO> CreateAppointmentAsync(AppointmentCreateDTO dto)
+        {
+            var vehicle = await _db.Vehicles
+                .FirstOrDefaultAsync(v => v.VehicleId == dto.VehicleId && v.CustomerId == dto.CustomerId);
+
+            if (vehicle == null)
+                throw new KeyNotFoundException("Vehicle not found or does not belong to the customer.");
+
+            var availableServices = await _db.ServiceCenterServices
+                .Where(scs => scs.Station_id == dto.Station_id && dto.ServiceIds.Contains(scs.ServiceId))
+                .Include(scs => scs.Service)
+                .ToListAsync();
+
+            if (availableServices.Count != dto.ServiceIds.Count)
+                throw new InvalidOperationException("One or more selected services are not available at the selected station.");
+
+            var appointment = new Appointment
+            {
+                VehicleId = dto.VehicleId,
+                Station_id = dto.Station_id,
+                CustomerId = dto.CustomerId,
+                AppointmentDate = dto.AppointmentDate,
+                Status = "Pending",
+                AppointmentPrice = availableServices.Sum(s => s.CustomPrice ?? s.Service.BasePrice ?? 0)
+            };
+
+            _db.Appointments.Add(appointment);
+            await _db.SaveChangesAsync();
+
+            foreach (var svc in availableServices)
+            {
+                _db.AppointmentServices.Add(new Models.AppointmentService
+                {
+                    AppointmentId = appointment.AppointmentId,
+                    ServiceId = svc.ServiceId,
+                    ServicePrice = svc.CustomPrice ?? svc.Service.BasePrice ?? 0
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            var stationName = await _db.ServiceCenters
+                .Where(sc => sc.Station_id == dto.Station_id)
+                .Select(sc => sc.Station_name)
+                .FirstOrDefaultAsync() ?? "Unknown";
+
+            return new AppointmentSummaryForCustomerDTO
+            {
+                AppointmentId = appointment.AppointmentId,
+                AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
+                StationName = stationName
+            };
+        }
+
+        public async Task<List<AppointmentSummaryForCustomerDTO>> GetAppointmentsByCustomerVehicleAsync(int customerId, int vehicleId)
+        {
+            return await _db.Appointments
+                .Include(a => a.ServiceCenter)
+                .Where(a => a.CustomerId == customerId && a.VehicleId == vehicleId)
+                .Select(a => new AppointmentSummaryForCustomerDTO
+                {
+                    AppointmentId = a.AppointmentId,
+                    StationName = a.ServiceCenter.Station_name,
+                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue
+                })
+                .ToListAsync();
+        }
+
+        public async Task<AppointmentDetailForCustomerDTO> GetCustomerAppointmentDetailsAsync(int customerId, int vehicleId, int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Vehicle)
+                    .ThenInclude(v => v.Customer)
+                .Include(a => a.ServiceCenter)
+                .Include(a => a.AppointmentServices).ThenInclude(asv => asv.Service)
+                .FirstOrDefaultAsync(a =>
+                    a.AppointmentId == appointmentId &&
+                    a.CustomerId == customerId &&
+                    a.VehicleId == vehicleId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found for the specified customer and vehicle.");
+
+            var serviceList = appointment.AppointmentServices.Select(s => new AppointmentServiceDetailDTO
+            {
+                ServiceName = s.Service.ServiceName,
+                EstimatedCost = s.ServicePrice ?? s.Service.BasePrice ?? 0
+            }).ToList();
+
+            var total = serviceList.Sum(s => s.EstimatedCost);
+
+            // Get loyalty points from ServiceCenterService based on station and services
+            var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
+
+            var totalLoyaltyPoints = await _db.ServiceCenterServices
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
+                .SumAsync(scs => scs.LoyaltyPoints ?? 0);
+
+            return new AppointmentDetailForCustomerDTO
+            {
+                VehicleRegistration = appointment.Vehicle.RegistrationNumber,
+                AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
+                ServiceCenterId = appointment.ServiceCenter.Station_id,
+                ServiceCenterAddress = appointment.ServiceCenter.Address,
+                ServiceCenterName = appointment.ServiceCenter.Station_name,
+                DistanceInKm = null, // To be implemented
+                LoyaltyPoints = totalLoyaltyPoints,
+                Services = serviceList,
+                TotalCost = total
+            };
+        }
+
+        public async Task<List<AppointmentSummaryForAdminDTO>> GetAppointmentsForServiceCenterAsync(int stationId)
+        {
+            return await _db.Appointments
+                .Include(a => a.Customer)
+                .Where(a => a.Station_id == stationId)
+                .Select(a => new AppointmentSummaryForAdminDTO
+                {
+                    AppointmentId = a.AppointmentId,
+                    OwnerName = a.Customer.FirstName + " " + a.Customer.LastName,
+                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue
+                })
+                .ToListAsync();
+        }
+
+        public async Task<AppointmentDetailForAdminDTO> GetAppointmentDetailForAdminAsync(int stationId, int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Vehicle).ThenInclude(v => v.Customer)
+                .Include(a => a.AppointmentServices).ThenInclude(asv => asv.Service)
+                .FirstOrDefaultAsync(a =>
+                    a.AppointmentId == appointmentId &&
+                    a.Station_id == stationId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found for the specified service center.");
+
+            return new AppointmentDetailForAdminDTO
+            {
+                AppointmentId = appointment.AppointmentId,
+                LicensePlate = appointment.Vehicle.RegistrationNumber,
+                VehicleType = appointment.Vehicle.Model,
+                OwnerName = $"{appointment.Vehicle.Customer.FirstName} {appointment.Vehicle.Customer.LastName}",
+                AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
+                Services = appointment.AppointmentServices.Select(s => s.Service.ServiceName).ToList()
+            };
+        }
+
+        public async Task<AppointmentDetailForAdminVehicleDTO> GetAdminAppointmentDetailsByVehicleAsync(int stationId, int customerId, int vehicleId, int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.ServiceCenter)
+                .Include(a => a.Vehicle)
+                .Include(a => a.AppointmentServices)
+                    .ThenInclude(asv => asv.Service)
+                .FirstOrDefaultAsync(a =>
+                    a.AppointmentId == appointmentId &&
+                    a.Station_id == stationId &&
+                    a.CustomerId == customerId &&
+                    a.VehicleId == vehicleId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found for the specified vehicle, customer, and station.");
+
+            return new AppointmentDetailForAdminVehicleDTO
+            {
+                AppointmentId = appointment.AppointmentId,
+                AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
+                StationName = appointment.ServiceCenter.Station_name ?? "Unknown",
+                Services = appointment.AppointmentServices
+                            .Select(s => s.Service.ServiceName)
+                            .ToList(),
+                Notes = appointment.Description
+                //BookingFee = appointment.AppointmentPrice ?? 0
+            };
+        }
+    }
+}

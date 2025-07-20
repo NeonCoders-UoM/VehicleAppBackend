@@ -30,7 +30,6 @@ namespace Vpassbackend.Controllers
                     ServiceName = s.ServiceName,
                     Description = s.Description,
                     BasePrice = s.BasePrice,
-                    LoyaltyPoints = s.LoyaltyPoints,
                     Category = s.Category
                 })
                 .ToListAsync();
@@ -50,7 +49,6 @@ namespace Vpassbackend.Controllers
                     ServiceName = s.ServiceName,
                     Description = s.Description,
                     BasePrice = s.BasePrice,
-                    LoyaltyPoints = s.LoyaltyPoints,
                     Category = s.Category
                 })
                 .FirstOrDefaultAsync();
@@ -83,7 +81,6 @@ namespace Vpassbackend.Controllers
                     ServiceName = scs.Service.ServiceName,
                     Description = scs.Service.Description,
                     BasePrice = scs.CustomPrice ?? scs.Service.BasePrice,
-                    LoyaltyPoints = scs.Service.LoyaltyPoints,
                     Category = scs.Service.Category,
                     Station_id = scs.Station_id
                 })
@@ -104,7 +101,6 @@ namespace Vpassbackend.Controllers
                     ServiceName = s.ServiceName,
                     Description = s.Description,
                     BasePrice = s.BasePrice,
-                    LoyaltyPoints = s.LoyaltyPoints,
                     Category = s.Category
                 })
                 .ToListAsync();
@@ -122,7 +118,6 @@ namespace Vpassbackend.Controllers
                 ServiceName = createServiceDTO.ServiceName,
                 Description = createServiceDTO.Description,
                 BasePrice = createServiceDTO.BasePrice,
-                LoyaltyPoints = createServiceDTO.LoyaltyPoints,
                 Category = createServiceDTO.Category
             };
 
@@ -135,7 +130,6 @@ namespace Vpassbackend.Controllers
                 ServiceName = service.ServiceName,
                 Description = service.Description,
                 BasePrice = service.BasePrice,
-                LoyaltyPoints = service.LoyaltyPoints,
                 Category = service.Category
             };
 
@@ -164,8 +158,7 @@ namespace Vpassbackend.Controllers
             if (updateServiceDTO.BasePrice.HasValue)
                 service.BasePrice = updateServiceDTO.BasePrice;
 
-            if (updateServiceDTO.LoyaltyPoints.HasValue)
-                service.LoyaltyPoints = updateServiceDTO.LoyaltyPoints;
+
 
             if (updateServiceDTO.Category != null)
                 service.Category = updateServiceDTO.Category;

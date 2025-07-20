@@ -15,8 +15,6 @@ namespace Vpassbackend.DTOs
 
         public decimal? BasePrice { get; set; }
 
-        public int? LoyaltyPoints { get; set; }
-
         public int? Station_id { get; set; }
 
         public string? StationName { get; set; }
@@ -36,8 +34,6 @@ namespace Vpassbackend.DTOs
 
         public decimal? BasePrice { get; set; }
 
-        public int? LoyaltyPoints { get; set; }
-
         [MaxLength(50)]
         public string? Category { get; set; }
     }
@@ -51,8 +47,6 @@ namespace Vpassbackend.DTOs
         public string? Description { get; set; }
 
         public decimal? BasePrice { get; set; }
-
-        public int? LoyaltyPoints { get; set; }
 
         [MaxLength(50)]
         public string? Category { get; set; }

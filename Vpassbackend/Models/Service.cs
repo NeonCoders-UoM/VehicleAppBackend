@@ -18,8 +18,6 @@ namespace Vpassbackend.Models
         [Column(TypeName = "decimal(10, 2)")]
         public decimal? BasePrice { get; set; }
 
-        public int? LoyaltyPoints { get; set; }
-
         // Service category or type could be added here
         [MaxLength(50)]
         public string? Category { get; set; }

@@ -20,6 +20,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenter> ServiceCenters { get; set; }
         public DbSet<ServiceCenterCheckInPoint> ServiceCenterCheckInPoints { get; set; }
         public DbSet<ServiceCenterService> ServiceCenterServices { get; set; }
+        public DbSet<Package> Packages { get; set; }
         public DbSet<ServiceReminder> ServiceReminders { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
@@ -77,6 +78,13 @@ namespace Vpassbackend.Data
             modelBuilder.Entity<ServiceCenterService>()
                 .HasIndex(scs => new { scs.ServiceId, scs.Station_id })
                 .IsUnique();
+
+            // Configure ServiceCenterService-Package relationship
+            modelBuilder.Entity<ServiceCenterService>()
+                .HasOne(scs => scs.Package)
+                .WithMany(p => p.ServiceCenterServices)
+                .HasForeignKey(scs => scs.PackageId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Configure VehicleServiceHistory relationships
             modelBuilder.Entity<VehicleServiceHistory>()

@@ -394,9 +394,78 @@ namespace Vpassbackend.Controllers
             return NoContent();
         }
 
+        // PUT: api/ServiceCenters/{stationId}/Services/{serviceId}
+        [HttpPut("{stationId}/Services/{serviceId}")]
+        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin")]
+        public async Task<IActionResult> UpdateServiceAvailability(int stationId, int serviceId, [FromBody] UpdateServiceAvailabilityRequest request)
+        {
+            // Find the service center service by station ID and service ID
+            var serviceCenterService = await _context.ServiceCenterServices
+                .Include(scs => scs.Service)
+                .Include(scs => scs.ServiceCenter)
+                .Include(scs => scs.Package)
+                .FirstOrDefaultAsync(scs => scs.Station_id == stationId && scs.ServiceId == serviceId);
+
+            if (serviceCenterService == null)
+            {
+                return NotFound($"Service with ID {serviceId} not found for service center {stationId}");
+            }
+
+            // Update only the availability if provided
+            if (request.IsAvailable.HasValue)
+            {
+                serviceCenterService.IsAvailable = request.IsAvailable.Value;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ServiceCenterServiceExists(serviceCenterService.ServiceCenterServiceId))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            // Return the updated service center service
+            var resultDto = new ServiceCenterServiceDTO
+            {
+                ServiceCenterServiceId = serviceCenterService.ServiceCenterServiceId,
+                Station_id = serviceCenterService.Station_id,
+                ServiceId = serviceCenterService.ServiceId,
+                PackageId = serviceCenterService.PackageId,
+                CustomPrice = serviceCenterService.CustomPrice,
+                ServiceCenterBasePrice = serviceCenterService.BasePrice,
+                ServiceCenterLoyaltyPoints = serviceCenterService.LoyaltyPoints,
+                IsAvailable = serviceCenterService.IsAvailable,
+                Notes = serviceCenterService.Notes,
+                ServiceName = serviceCenterService.Service.ServiceName,
+                ServiceDescription = serviceCenterService.Service.Description,
+                ServiceBasePrice = serviceCenterService.Service.BasePrice,
+                Category = serviceCenterService.Service.Category,
+                StationName = serviceCenterService.ServiceCenter.Station_name,
+                PackageName = serviceCenterService.Package != null ? serviceCenterService.Package.PackageName : null,
+                PackagePercentage = serviceCenterService.Package != null ? serviceCenterService.Package.Percentage : null,
+                PackageDescription = serviceCenterService.Package != null ? serviceCenterService.Package.Description : null
+            };
+
+            return Ok(resultDto);
+        }
+
         private bool ServiceCenterExists(int id)
         {
             return _context.ServiceCenters.Any(e => e.Station_id == id);
+        }
+
+        private bool ServiceCenterServiceExists(int id)
+        {
+            return _context.ServiceCenterServices.Any(e => e.ServiceCenterServiceId == id);
         }
     }
 }

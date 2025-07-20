@@ -17,16 +17,23 @@ namespace Vpassbackend.Data
         {
             // Define user roles with explicit IDs for consistency
             if (!context.UserRoles.Any())
-            {
-                context.UserRoles.AddRange(
-                new UserRole { UserRoleId = SUPER_ADMIN_ROLE_ID, UserRoleName = "SuperAdmin" },
-                new UserRole { UserRoleId = ADMIN_ROLE_ID, UserRoleName = "Admin" },
-                new UserRole { UserRoleId = SERVICE_CENTER_ADMIN_ROLE_ID, UserRoleName = "ServiceCenterAdmin" },
-                new UserRole { UserRoleId = CASHIER_ROLE_ID, UserRoleName = "Cashier" },
-                new UserRole { UserRoleId = DATA_OPERATOR_ROLE_ID, UserRoleName = "DataOperator" }
-            );
-                await context.SaveChangesAsync();
-            }
+{
+    await context.Database.OpenConnectionAsync();
+    await context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [UserRoles] ON");
+
+    context.UserRoles.AddRange(
+        new UserRole { UserRoleId = SUPER_ADMIN_ROLE_ID, UserRoleName = "SuperAdmin" },
+        new UserRole { UserRoleId = ADMIN_ROLE_ID, UserRoleName = "Admin" },
+        new UserRole { UserRoleId = SERVICE_CENTER_ADMIN_ROLE_ID, UserRoleName = "ServiceCenterAdmin" },
+        new UserRole { UserRoleId = CASHIER_ROLE_ID, UserRoleName = "Cashier" },
+        new UserRole { UserRoleId = DATA_OPERATOR_ROLE_ID, UserRoleName = "DataOperator" }
+    );
+
+    await context.SaveChangesAsync();
+
+    await context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [UserRoles] OFF");
+    await context.Database.CloseConnectionAsync();
+}
 
             if (!context.Users.Any())
             {

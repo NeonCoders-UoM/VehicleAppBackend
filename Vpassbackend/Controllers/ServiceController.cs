@@ -16,19 +16,42 @@ namespace Vpassbackend.Controllers
         public ServiceController(ApplicationDbContext context) => _context = context;
 
         [HttpGet("{serviceCenterId}")]
-        public IActionResult GetServices(int serviceCenterId, [FromQuery] int weekNumber)
+        public IActionResult GetServices(int serviceCenterId, [FromQuery] int weekNumber, [FromQuery] string? day = null)
         {
             var services = _context.ServiceCenterServices
                 .Where(s => s.Station_id == serviceCenterId)
                 .Select(s => new {
                     s.ServiceId,
                     s.Service.ServiceName,
-                    IsAvailable = !_context.ServiceAvailabilities.Any(a =>
+                    s.ServiceCenterServiceId,
+                    IsAvailable = s.IsAvailable && !_context.ServiceAvailabilities.Any(a =>
                         a.ServiceCenterId == serviceCenterId &&
                         a.ServiceId == s.ServiceId &&
                         a.WeekNumber == weekNumber &&
+                        (!string.IsNullOrEmpty(day) ? a.Day == day : true) &&
                         !a.IsAvailable)
                 }).ToList();
+
+            // If a specific day is provided, also check closure schedules
+            if (!string.IsNullOrEmpty(day))
+            {
+                bool isClosed = _context.ClosureSchedules
+                    .Any(cs => cs.ServiceCenterId == serviceCenterId && 
+                               cs.WeekNumber == weekNumber && 
+                               cs.Day == day);
+
+                if (isClosed)
+                {
+                    // If service center is closed, mark all services as unavailable
+                    services = services.Select(s => new {
+                        s.ServiceId,
+                        s.ServiceName,
+                        s.ServiceCenterServiceId,
+                        IsAvailable = false
+                    }).ToList();
+                }
+            }
+
             return Ok(services);
         }
 
@@ -66,16 +89,27 @@ namespace Vpassbackend.Controllers
             if (isClosed)
                 return Ok(new List<object>()); // Service center is closed
 
-            var availableServices = (from sa in _context.ServiceAvailabilities
-                                     join s in _context.Services on sa.ServiceId equals s.ServiceId
-                                     where sa.ServiceCenterId == serviceCenterId
-                                         && sa.WeekNumber == weekNumber
-                                         && sa.Day == day
-                                         && sa.IsAvailable
+            // Get available services considering both ServiceCenterServices.IsAvailable and ServiceAvailabilities
+            var availableServices = (from scs in _context.ServiceCenterServices
+                                     join s in _context.Services on scs.ServiceId equals s.ServiceId
+                                     where scs.Station_id == serviceCenterId
+                                         && scs.IsAvailable // Check if service is available at service center level
                                      select new {
-                                         sa.ServiceId,
-                                         ServiceName = s.ServiceName
-                                     }).ToList();
+                                         scs.ServiceId,
+                                         ServiceName = s.ServiceName,
+                                         IsAvailable = scs.IsAvailable && !_context.ServiceAvailabilities.Any(sa =>
+                                             sa.ServiceCenterId == serviceCenterId &&
+                                             sa.ServiceId == scs.ServiceId &&
+                                             sa.WeekNumber == weekNumber &&
+                                             sa.Day == day &&
+                                             !sa.IsAvailable)
+                                     })
+                                     .Where(s => s.IsAvailable)
+                                     .Select(s => new {
+                                         s.ServiceId,
+                                         s.ServiceName
+                                     })
+                                     .ToList();
 
             return Ok(availableServices);
         }

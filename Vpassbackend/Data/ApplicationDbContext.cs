@@ -12,6 +12,7 @@ namespace Vpassbackend.Data
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<AppointmentService> AppointmentServices { get; set; }
         public DbSet<BorderPoint> BorderPoints { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
@@ -44,12 +45,6 @@ namespace Vpassbackend.Data
                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.Service)
-                .WithMany(s => s.Appointments)
-                .HasForeignKey(a => a.ServiceId)
-                .OnDelete(DeleteBehavior.NoAction);
-
-            modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.ServiceCenter)
                 .WithMany()
                 .HasForeignKey(a => a.Station_id)
@@ -59,6 +54,22 @@ namespace Vpassbackend.Data
                 .HasOne(a => a.Customer)
                 .WithMany()
                 .HasForeignKey(a => a.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Appointment - Service relationship
+            modelBuilder.Entity<AppointmentService>()
+                .HasKey(asv => new { asv.AppointmentId, asv.ServiceId });
+
+            modelBuilder.Entity<AppointmentService>()
+                .HasOne(asv => asv.Appointment)
+                .WithMany(a => a.AppointmentServices)
+                .HasForeignKey(asv => asv.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AppointmentService>()
+                .HasOne(asv => asv.Service)
+                .WithMany()
+                .HasForeignKey(asv => asv.ServiceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configure ServiceCenterService relationships

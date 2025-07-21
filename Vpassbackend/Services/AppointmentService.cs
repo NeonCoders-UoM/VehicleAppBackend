@@ -93,20 +93,24 @@ namespace Vpassbackend.Services
             if (appointment == null)
                 throw new KeyNotFoundException("Appointment not found for the specified customer and vehicle.");
 
-            var serviceList = appointment.AppointmentServices.Select(s => new AppointmentServiceDetailDTO
-            {
-                ServiceName = s.Service.ServiceName,
-                EstimatedCost = s.ServicePrice ?? s.Service.BasePrice ?? 0
-            }).ToList();
-
-            var total = serviceList.Sum(s => s.EstimatedCost);
-
-            // Get loyalty points from ServiceCenterService based on station and services
             var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
 
-            var totalLoyaltyPoints = await _db.ServiceCenterServices
+            // Get accurate pricing and loyalty points from ServiceCenterService
+            var serviceCenterServices = await _db.ServiceCenterServices
                 .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
-                .SumAsync(scs => scs.LoyaltyPoints ?? 0);
+                .Include(scs => scs.Service)
+                .ToListAsync();
+
+            // Build service list using pricing from service center mapping
+            var serviceList = serviceCenterServices.Select(scs => new AppointmentServiceDetailDTO
+            {
+                ServiceName = scs.Service.ServiceName,
+                EstimatedCost = scs.CustomPrice ?? scs.BasePrice ?? scs.Service.BasePrice ?? 0
+            }).ToList();
+
+            // Calculate totals
+            var totalCost = serviceList.Sum(s => s.EstimatedCost);
+            var totalLoyaltyPoints = serviceCenterServices.Sum(scs => scs.LoyaltyPoints ?? 0);
 
             return new AppointmentDetailForCustomerDTO
             {
@@ -118,7 +122,7 @@ namespace Vpassbackend.Services
                 DistanceInKm = null, // To be implemented
                 LoyaltyPoints = totalLoyaltyPoints,
                 Services = serviceList,
-                TotalCost = total
+                TotalCost = totalCost
             };
         }
 

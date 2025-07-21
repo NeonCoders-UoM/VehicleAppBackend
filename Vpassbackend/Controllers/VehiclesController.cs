@@ -387,6 +387,26 @@ namespace Vpassbackend.Controllers
             return NoContent();
         }
 
+        // Document_page_Basic Info
+        [HttpGet("api/vehicles/info/{customerId}/{vehicleId}")]
+        public async Task<ActionResult<object>> GetVehicleInfoByCustomer(int customerId, int vehicleId)
+        {
+            var vehicle = await _context.Vehicles
+                .Where(v => v.VehicleId == vehicleId && v.CustomerId == customerId)
+                .FirstOrDefaultAsync();
+
+            if (vehicle == null)
+            {
+                return NotFound("Vehicle not found for the given customer");
+            }
+
+            return Ok(new
+            {
+                Model = vehicle.Model,
+                ChassisNumber = vehicle.ChassisNumber
+            });
+        }
+
         // Helper method to check if a service history record exists
         private bool ServiceHistoryExists(int serviceHistoryId, int vehicleId)
         {

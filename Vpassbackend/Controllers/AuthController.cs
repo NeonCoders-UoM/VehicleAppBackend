@@ -193,6 +193,43 @@ namespace Vpassbackend.Controllers
 
             return Ok("OTP resent successfully.");
         }
+        [Authorize]
+[HttpPost("change-password")]
+public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+{
+    // Find the customer
+    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == dto.CustomerId);
+    if (customer == null)
+        return NotFound("Customer not found.");
+
+    // Verify old password
+    if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, customer.Password))
+        return BadRequest("Old password is incorrect.");
+
+    // Optionally: check new password strength here
+
+    // Hash and set new password
+    customer.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Password changed successfully." });
+}
+[Authorize]
+[HttpPost("delete-account")]
+public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
+{
+    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == dto.CustomerId);
+    if (customer == null)
+        return NotFound("Customer not found.");
+
+    if (!BCrypt.Net.BCrypt.Verify(dto.Password, customer.Password))
+        return BadRequest("Password is incorrect.");
+
+    _context.Customers.Remove(customer);
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Account deleted successfully." });
+}
 
         [HttpPut("update-customer-details")]
         public async Task<IActionResult> UpdateCustomerDetails([FromBody] CustomerUpdateDto dto)

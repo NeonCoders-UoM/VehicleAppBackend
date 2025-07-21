@@ -8,7 +8,7 @@ using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    // [Authorize(Roles = "SuperAdmin")]
     [ApiController]
     [Route("api/[controller]")]
    

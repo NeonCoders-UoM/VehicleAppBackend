@@ -1,3 +1,10 @@
+
+# Ignore build output folders
+Vpassbackend/bin/
+Vpassbackend/obj/
+
+# Ignore all DLLs, EXEs, PDBs
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -418,9 +425,32 @@ update_database.bat
 *.sln.docstates
 
 # Common binary files
+
 *.dll
 *.exe
 *.pdb
+
+
+# Ignore user secrets and sensitive config
+appsettings.Development.json
+appsettings.Local.json
+
+# Ignore Visual Studio and JetBrains IDE files
+.vs/
+.idea/
+.vscode/
+
+# Ignore cache and temporary files
+*.cache
+*.log
+*.tmp
+*.user
+*.suo
+*.csproj.user
+
+# Optional: ignore system files
+Thumbs.db
+.DS_Store
 
 *.obj
 *.exe
@@ -704,4 +734,5 @@ FodyWeavers.xsd
 *.pdf
 add_test*.sql
 test-*.http
+
 

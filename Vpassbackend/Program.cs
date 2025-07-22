@@ -30,6 +30,8 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ILoyaltyPointsService, LoyaltyPointsService>();
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<AzureBlobService>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

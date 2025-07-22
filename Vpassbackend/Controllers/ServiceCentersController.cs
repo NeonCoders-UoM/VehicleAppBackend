@@ -5,6 +5,8 @@ using Vpassbackend.Data;
 using Vpassbackend.DTOs;
 using Vpassbackend.Models;
 using Vpassbackend.Services;
+using System;
+
 
 namespace Vpassbackend.Controllers
 {
@@ -109,7 +111,9 @@ namespace Vpassbackend.Controllers
                 Email = createServiceCenterDTO.Email,
                 Telephone = createServiceCenterDTO.Telephone,
                 Address = createServiceCenterDTO.Address,
-                Station_status = createServiceCenterDTO.Station_status
+                Station_status = createServiceCenterDTO.Station_status,
+                Latitude = createServiceCenterDTO.Latitude,    // Added Latitude
+                Longitude = createServiceCenterDTO.Longitude   // Added Longitude
             };
 
             _context.ServiceCenters.Add(serviceCenter);
@@ -125,11 +129,14 @@ namespace Vpassbackend.Controllers
                 Email = serviceCenter.Email,
                 Telephone = serviceCenter.Telephone,
                 Address = serviceCenter.Address,
-                Station_status = serviceCenter.Station_status
+                Station_status = serviceCenter.Station_status,
+                Latitude = serviceCenter.Latitude,             // Added Latitude
+                Longitude = serviceCenter.Longitude            // Added Longitude
             };
 
             return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.Station_id }, serviceCenterDTO);
         }
+
 
         // PUT: api/ServiceCenters/5
         [HttpPut("{id}")]
@@ -457,6 +464,63 @@ namespace Vpassbackend.Controllers
 
             return Ok(resultDto);
         }
+
+        // GET: api/servicecenters/nearby?lat={latitude}&lng={longitude}
+        [HttpGet("nearby")]
+        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetNearbyServiceCenters(
+    double lat,
+    double lng,
+    [FromQuery] List<int> serviceIds
+)
+        {
+            var serviceCenters = await _context.ServiceCenters
+                .Where(sc =>
+                    sc.Station_status != null &&
+                    sc.Station_status.ToLower() == "active" &&
+                    _context.ServiceCenterServices
+                        .Where(scs => scs.Station_id == sc.Station_id)
+                        .Select(scs => scs.ServiceId)
+                        .Distinct()
+                        .Intersect(serviceIds)
+                        .Count() == serviceIds.Count
+                )
+                .Select(sc => new ServiceCenterDTO
+                {
+                    Station_id = sc.Station_id,
+                    OwnerName = sc.OwnerName,
+                    VATNumber = sc.VATNumber,
+                    RegisterationNumber = sc.RegisterationNumber,
+                    Station_name = sc.Station_name,
+                    Email = sc.Email,
+                    Telephone = sc.Telephone,
+                    Address = sc.Address,
+                    Station_status = sc.Station_status,
+                    Latitude = sc.Latitude,
+                    Longitude = sc.Longitude
+                })
+                .ToListAsync();
+
+            var nearbyCenters = serviceCenters
+                .Where(sc => CalculateDistance(lat, lng, sc.Latitude, sc.Longitude) <= 20)
+                .ToList();
+
+            return Ok(nearbyCenters);
+        }
+
+
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371; // Earth's radius in km
+            var dLat = ToRadians(lat2 - lat1);
+            var dLon = ToRadians(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
+        }
+
+        private double ToRadians(double deg) => deg * Math.PI / 180;
 
         private bool ServiceCenterExists(int id)
         {

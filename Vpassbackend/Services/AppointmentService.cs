@@ -134,7 +134,7 @@ namespace Vpassbackend.Services
                 .Select(a => new AppointmentSummaryForAdminDTO
                 {
                     AppointmentId = a.AppointmentId,
-                    OwnerName = a.Customer.FirstName + " " + a.Customer.LastName,
+                    OwnerName = (a.Customer != null ? a.Customer.FirstName + " " + a.Customer.LastName : "Unknown"),
                     AppointmentDate = a.AppointmentDate ?? DateTime.MinValue
                 })
                 .ToListAsync();
@@ -155,11 +155,17 @@ namespace Vpassbackend.Services
             return new AppointmentDetailForAdminDTO
             {
                 AppointmentId = appointment.AppointmentId,
-                LicensePlate = appointment.Vehicle.RegistrationNumber,
-                VehicleType = appointment.Vehicle.Model,
-                OwnerName = $"{appointment.Vehicle.Customer.FirstName} {appointment.Vehicle.Customer.LastName}",
+                LicensePlate = appointment.Vehicle?.RegistrationNumber ?? "Unknown",
+                VehicleType = appointment.Vehicle?.Model ?? "Unknown",
+                OwnerName = $"{appointment.Vehicle?.Customer?.FirstName ?? "Unknown"} {appointment.Vehicle?.Customer?.LastName ?? ""}".Trim(),
                 AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
-                Services = appointment.AppointmentServices.Select(s => s.Service.ServiceName).ToList()
+                Services = appointment.AppointmentServices?
+                    .Where(s => s.Service != null)
+                    .Select(s => s.Service.ServiceName)
+                    .ToList() ?? new List<string>(),
+                VehicleId = appointment.Vehicle?.VehicleId ?? 0,
+                ServiceCenterId = appointment.Station_id,
+                ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown"
             };
         }
 

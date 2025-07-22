@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250721034628_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250722102707_AddServiceCenterSlotsAndSlotsProperty")]
+    partial class AddServiceCenterSlotsAndSlotsProperty
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -226,24 +226,43 @@ namespace Vpassbackend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DocumentId"));
 
-                    b.Property<string>("DocumentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ExpiryDate")
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("FilePath")
+                    b.Property<string>("FileName")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("UploadDate")
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("VehicleId")
+                    b.Property<int?>("VehicleId")
                         .HasColumnType("int");
 
                     b.HasKey("DocumentId");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("VehicleId");
 
@@ -598,6 +617,12 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
                     b.Property<string>("OwnerName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -622,6 +647,9 @@ namespace Vpassbackend.Migrations
                     b.Property<string>("VATNumber")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
+
+                    b.Property<int>("slots")
+                        .HasColumnType("int");
 
                     b.HasKey("Station_id");
 
@@ -693,6 +721,30 @@ namespace Vpassbackend.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceCenterServices");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Station_id")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsedSlots")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Station_id");
+
+                    b.ToTable("ServiceCenterSlots");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
@@ -960,11 +1012,17 @@ namespace Vpassbackend.Migrations
 
             modelBuilder.Entity("Vpassbackend.Models.Document", b =>
                 {
-                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
-                        .WithMany("Documents")
-                        .HasForeignKey("VehicleId")
+                    b.HasOne("Vpassbackend.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
+                        .WithMany("Documents")
+                        .HasForeignKey("VehicleId");
+
+                    b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
                 });
@@ -1098,6 +1156,17 @@ namespace Vpassbackend.Migrations
                     b.Navigation("ServiceCenter");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany("DailySlots")
+                        .HasForeignKey("Station_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceCenter");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Service", "Service")
@@ -1191,6 +1260,8 @@ namespace Vpassbackend.Migrations
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenter", b =>
                 {
                     b.Navigation("CheckInPoints");
+
+                    b.Navigation("DailySlots");
 
                     b.Navigation("ServiceCenterServices");
                 });

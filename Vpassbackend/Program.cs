@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                    "http://localhost:52955")
+                    "http://localhost:3000")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials(); // If using cookies
@@ -31,6 +31,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ILoyaltyPointsService, LoyaltyPointsService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<AzureBlobService>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

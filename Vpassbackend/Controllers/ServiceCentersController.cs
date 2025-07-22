@@ -467,10 +467,23 @@ namespace Vpassbackend.Controllers
 
         // GET: api/servicecenters/nearby?lat={latitude}&lng={longitude}
         [HttpGet("nearby")]
-        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetNearbyServiceCenters(double lat, double lng)
+        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetNearbyServiceCenters(
+    double lat,
+    double lng,
+    [FromQuery] List<int> serviceIds
+)
         {
             var serviceCenters = await _context.ServiceCenters
-                .Where(sc => sc.Station_status != null && sc.Station_status.ToLower() == "active")
+                .Where(sc =>
+                    sc.Station_status != null &&
+                    sc.Station_status.ToLower() == "active" &&
+                    _context.ServiceCenterServices
+                        .Where(scs => scs.Station_id == sc.Station_id)
+                        .Select(scs => scs.ServiceId)
+                        .Distinct()
+                        .Intersect(serviceIds)
+                        .Count() == serviceIds.Count
+                )
                 .Select(sc => new ServiceCenterDTO
                 {
                     Station_id = sc.Station_id,
@@ -488,11 +501,12 @@ namespace Vpassbackend.Controllers
                 .ToListAsync();
 
             var nearbyCenters = serviceCenters
-                .Where(sc => CalculateDistance(lat, lng, sc.Latitude, sc.Longitude) <= 1000) // 1 km radius
+                .Where(sc => CalculateDistance(lat, lng, sc.Latitude, sc.Longitude) <= 20)
                 .ToList();
 
             return Ok(nearbyCenters);
         }
+
 
         private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {

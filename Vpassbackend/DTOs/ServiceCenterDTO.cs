@@ -31,6 +31,10 @@ namespace Vpassbackend.DTOs
 
         [MaxLength(20)]
         public string? Station_status { get; set; }
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
     }
 
     public class CreateServiceCenterDTO
@@ -60,6 +64,10 @@ namespace Vpassbackend.DTOs
 
         [MaxLength(20)]
         public string? Station_status { get; set; } = "Active"; // Default status
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
     }
 
     public class UpdateServiceCenterDTO
@@ -88,5 +96,9 @@ namespace Vpassbackend.DTOs
 
         [MaxLength(20)]
         public string? Station_status { get; set; }
+
+        public double Latitude { get; set; }
+
+        public double Longitude { get; set; }
     }
 }

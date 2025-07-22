@@ -614,6 +614,12 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<double>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("float");
+
                     b.Property<string>("OwnerName")
                         .IsRequired()
                         .HasMaxLength(100)

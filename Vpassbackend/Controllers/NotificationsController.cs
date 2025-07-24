@@ -3,20 +3,24 @@ using Microsoft.EntityFrameworkCore;
 using Vpassbackend.Data;
 using Vpassbackend.DTOs;
 using Vpassbackend.Models;
+using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class NotificationsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<NotificationsController> _logger;
+        private readonly INotificationService _notificationService;
 
-        public NotificationsController(ApplicationDbContext context, ILogger<NotificationsController> logger)
+        public NotificationsController(ApplicationDbContext context, ILogger<NotificationsController> logger, INotificationService notificationService)
         {
             _context = context;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         // GET: api/Notifications/Customer/5
@@ -174,7 +178,6 @@ namespace Vpassbackend.Controllers
         {
             try
             {
-                // Validate the customer exists
                 var customer = await _context.Customers.FindAsync(createDto.CustomerId);
                 if (customer == null)
                 {
@@ -185,13 +188,13 @@ namespace Vpassbackend.Controllers
                 var priorityColor = createDto.PriorityColor;
                 if (string.IsNullOrEmpty(priorityColor))
                 {
-                    priorityColor = createDto.Priority.ToLower() switch
+                    priorityColor = (createDto.Priority ?? "medium").ToLower() switch
                     {
                         "critical" => "#DC2626", // Red
                         "high" => "#EA580C",     // Orange
                         "medium" => "#3B82F6",   // Blue
                         "low" => "#10B981",      // Green
-                        _ => "#3B82F6"           // Default blue
+                        _ => "#3B82F6"             // Default blue
                     };
                 }
 
@@ -244,7 +247,6 @@ namespace Vpassbackend.Controllers
                     CustomerName = notification.CustomerName
                 };
 
-                _logger.LogInformation($"Created notification {notification.NotificationId} for customer {createDto.CustomerId}");
                 return CreatedAtAction(nameof(GetNotification), new { id = notification.NotificationId }, notificationDto);
             }
             catch (Exception ex)

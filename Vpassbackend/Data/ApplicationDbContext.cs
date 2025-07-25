@@ -165,7 +165,7 @@ namespace Vpassbackend.Data
                 .HasOne(n => n.ServiceReminder)
                 .WithMany()
                 .HasForeignKey(n => n.ServiceReminderId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.Vehicle)

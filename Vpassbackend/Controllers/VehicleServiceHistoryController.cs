@@ -119,8 +119,16 @@ namespace Vpassbackend.Controllers
                 }
 
                 // For a registered service center, we mark as verified
-                // In a real implementation, we might check if this service type is offered by this center
                 isVerified = true;
+
+                // Enforce ServiceType to match the correct ServiceName from the Service table
+                // Try to find the service by name (case-insensitive)
+                var service = await _context.Services.FirstOrDefaultAsync(s => s.ServiceName.ToLower() == dto.ServiceType.ToLower());
+                if (service != null)
+                {
+                    dto.ServiceType = service.ServiceName; // Set to canonical name
+                }
+                // else: fallback to what was provided (for legacy/external/unmatched cases)
             }
 
             string? receiptPath = null;
@@ -176,6 +184,9 @@ namespace Vpassbackend.Controllers
 
             _context.VehicleServiceHistories.Add(serviceHistory);
             await _context.SaveChangesAsync();
+
+            // Remove matching reminders for this vehicle and service type
+            await RemoveMatchingReminders(vehicleId, serviceHistory.ServiceType);
 
             // Update vehicle mileage if provided and higher than current
             if (dto.Mileage.HasValue && (!vehicle.Mileage.HasValue || dto.Mileage > vehicle.Mileage))
@@ -365,6 +376,21 @@ namespace Vpassbackend.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // Removes all service reminders for a vehicle and service type (case-insensitive)
+        private async Task RemoveMatchingReminders(int vehicleId, string serviceType)
+        {
+            var reminders = await _context.ServiceReminders
+                .Include(sr => sr.Service)
+                .Where(sr => sr.VehicleId == vehicleId && sr.Service.ServiceName.ToLower() == serviceType.ToLower())
+                .ToListAsync();
+
+            if (reminders.Any())
+            {
+                _context.ServiceReminders.RemoveRange(reminders);
+                await _context.SaveChangesAsync();
+            }
         }
 
         // Helper method to check if a service history record exists

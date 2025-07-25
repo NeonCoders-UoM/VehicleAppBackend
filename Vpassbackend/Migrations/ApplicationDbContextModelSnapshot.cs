@@ -70,7 +70,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Appointments");
+                    b.ToTable("Appointments", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.AppointmentService", b =>
@@ -88,7 +88,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("ServiceId");
 
-                    b.ToTable("AppointmentServices");
+                    b.ToTable("AppointmentServices", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.BorderPoint", b =>
@@ -117,7 +117,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("BorderPoints");
+                    b.ToTable("BorderPoints", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ClosureSchedule", b =>
@@ -139,7 +139,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ClosureSchedules");
+                    b.ToTable("ClosureSchedules", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Customer", b =>
@@ -212,7 +212,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("CustomerId");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Document", b =>
@@ -263,7 +263,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Documents");
+                    b.ToTable("Documents", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.EmergencyCallCenter", b =>
@@ -296,7 +296,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("CenterId");
 
-                    b.ToTable("EmergencyCallCenters");
+                    b.ToTable("EmergencyCallCenters", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Feedback", b =>
@@ -338,7 +338,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Feedbacks");
+                    b.ToTable("Feedbacks", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.FuelEfficiency", b =>
@@ -365,7 +365,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("FuelEfficiencies");
+                    b.ToTable("FuelEfficiencies", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Invoice", b =>
@@ -389,7 +389,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Invoices");
+                    b.ToTable("Invoices", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Notification", b =>
@@ -485,7 +485,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Package", b =>
@@ -513,7 +513,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("PackageId");
 
-                    b.ToTable("Packages");
+                    b.ToTable("Packages", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.PaymentLog", b =>
@@ -538,7 +538,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("PaymentLogs");
+                    b.ToTable("PaymentLogs", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Service", b =>
@@ -567,7 +567,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("ServiceId");
 
-                    b.ToTable("Services");
+                    b.ToTable("Services", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceAvailability", b =>
@@ -595,7 +595,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ServiceAvailabilities");
+                    b.ToTable("ServiceAvailabilities", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenter", b =>
@@ -647,7 +647,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("Station_id");
 
-                    b.ToTable("ServiceCenters");
+                    b.ToTable("ServiceCenters", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenterCheckInPoint", b =>
@@ -669,7 +669,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("Station_id");
 
-                    b.ToTable("ServiceCenterCheckInPoints");
+                    b.ToTable("ServiceCenterCheckInPoints", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenterService", b =>
@@ -714,7 +714,7 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("ServiceId", "Station_id")
                         .IsUnique();
 
-                    b.ToTable("ServiceCenterServices");
+                    b.ToTable("ServiceCenterServices", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
@@ -759,7 +759,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("ServiceReminders");
+                    b.ToTable("ServiceReminders", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.User", b =>
@@ -796,7 +796,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("UserRoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.UserRole", b =>
@@ -814,7 +814,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasKey("UserRoleId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Vehicle", b =>
@@ -859,7 +859,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Vehicles");
+                    b.ToTable("Vehicles", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.VehicleServiceHistory", b =>
@@ -916,7 +916,7 @@ namespace Vpassbackend.Migrations
 
                     b.HasIndex("VehicleId");
 
-                    b.ToTable("VehicleServiceHistories");
+                    b.ToTable("VehicleServiceHistories", (string)null);
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Appointment", b =>

@@ -195,6 +195,30 @@ namespace Vpassbackend.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            if (isVerified)
+            {
+                var customerId = vehicle.CustomerId;
+                var notification = new Notification
+                {
+                    CustomerId = customerId,
+                    Title = "Service Record Verified",
+                    Message = $"A new verified service record for {serviceHistory.ServiceType} was added.",
+                    Type = "service_history_verified",
+                    Priority = "Medium", // Ensure this is set
+                    PriorityColor = "#3B82F6",
+                    VehicleId = serviceHistory.VehicleId,
+                    VehicleRegistrationNumber = vehicle.RegistrationNumber,
+                    VehicleBrand = vehicle.Brand,
+                    VehicleModel = vehicle.Model,
+                    ServiceName = serviceHistory.ServiceType,
+                    CustomerName = $"{vehicle.Customer?.FirstName} {vehicle.Customer?.LastName}",
+                    CreatedAt = DateTime.UtcNow,
+                    SentAt = DateTime.UtcNow
+                };
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync();
+            }
+
             // Return created service history
             var result = new ServiceHistoryDTO
             {

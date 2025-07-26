@@ -57,6 +57,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // Add background services
 builder.Services.AddHostedService<NotificationBackgroundService>();
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<AppointmentPaymentService>();
+builder.Services.AddScoped<ServiceCenterSearchService>();
+builder.Services.AddScoped<DailyLimitService>();
 
 builder.Services.AddScoped<AzureBlobService>();
 

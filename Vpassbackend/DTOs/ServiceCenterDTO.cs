@@ -35,6 +35,8 @@ namespace Vpassbackend.DTOs
         public double Latitude { get; set; }
 
         public double Longitude { get; set; }
+
+        public int DefaultDailyAppointmentLimit { get; set; }
     }
 
     public class CreateServiceCenterDTO
@@ -68,6 +70,8 @@ namespace Vpassbackend.DTOs
         public double Latitude { get; set; }
 
         public double Longitude { get; set; }
+
+        public int DefaultDailyAppointmentLimit { get; set; } = 20; // Default appointment limit per day
     }
 
     public class UpdateServiceCenterDTO

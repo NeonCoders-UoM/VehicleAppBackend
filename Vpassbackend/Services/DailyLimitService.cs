@@ -22,12 +22,16 @@ namespace Vpassbackend.Services
 
             if (dailyLimit == null)
             {
+                // Get the default limit from the service center or use 20 as fallback
+                var serviceCenter = await _context.ServiceCenters.FindAsync(stationId);
+                var defaultLimit = serviceCenter?.DefaultDailyAppointmentLimit ?? 20;
+                
                 // Create a new daily limit if it doesn't exist
                 dailyLimit = new ServiceCenterDailyLimit
                 {
                     Station_id = stationId,
                     Date = dateOnly,
-                    MaxAppointments = 20, // Default limit
+                    MaxAppointments = defaultLimit,
                     CurrentAppointments = 0
                 };
                 _context.ServiceCenterDailyLimits.Add(dailyLimit);
@@ -46,12 +50,16 @@ namespace Vpassbackend.Services
 
             if (dailyLimit == null)
             {
+                // Get the default limit from the service center or use 20 as fallback
+                var serviceCenter = await _context.ServiceCenters.FindAsync(stationId);
+                var defaultLimit = serviceCenter?.DefaultDailyAppointmentLimit ?? 20;
+                
                 // Create a new daily limit if it doesn't exist
                 dailyLimit = new ServiceCenterDailyLimit
                 {
                     Station_id = stationId,
                     Date = dateOnly,
-                    MaxAppointments = 20, // Default limit
+                    MaxAppointments = defaultLimit,
                     CurrentAppointments = 0
                 };
                 _context.ServiceCenterDailyLimits.Add(dailyLimit);
@@ -110,7 +118,10 @@ namespace Vpassbackend.Services
 
             if (dailyLimit == null)
             {
-                return 20; // Default available slots
+                // Get the default limit from the service center or use 20 as fallback
+                var serviceCenter = await _context.ServiceCenters.FindAsync(stationId);
+                var defaultLimit = serviceCenter?.DefaultDailyAppointmentLimit ?? 20;
+                return defaultLimit; // Default available slots
             }
 
             return Math.Max(0, dailyLimit.MaxAppointments - dailyLimit.CurrentAppointments);

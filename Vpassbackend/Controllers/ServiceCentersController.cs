@@ -40,7 +40,10 @@ namespace Vpassbackend.Controllers
                     Email = sc.Email,
                     Telephone = sc.Telephone,
                     Address = sc.Address,
-                    Station_status = sc.Station_status
+                    Station_status = sc.Station_status,
+                    Latitude = sc.Latitude,
+                    Longitude = sc.Longitude,
+                    DefaultDailyAppointmentLimit = sc.DefaultDailyAppointmentLimit
                 })
                 .ToListAsync();
 
@@ -68,7 +71,10 @@ namespace Vpassbackend.Controllers
                 Email = serviceCenter.Email,
                 Telephone = serviceCenter.Telephone,
                 Address = serviceCenter.Address,
-                Station_status = serviceCenter.Station_status
+                Station_status = serviceCenter.Station_status,
+                Latitude = serviceCenter.Latitude,
+                Longitude = serviceCenter.Longitude,
+                DefaultDailyAppointmentLimit = serviceCenter.DefaultDailyAppointmentLimit
             };
 
             return serviceCenterDTO;
@@ -90,7 +96,10 @@ namespace Vpassbackend.Controllers
                     Email = sc.Email,
                     Telephone = sc.Telephone,
                     Address = sc.Address,
-                    Station_status = sc.Station_status
+                    Station_status = sc.Station_status,
+                    Latitude = sc.Latitude,
+                    Longitude = sc.Longitude,
+                    DefaultDailyAppointmentLimit = sc.DefaultDailyAppointmentLimit
                 })
                 .ToListAsync();
 
@@ -113,14 +122,15 @@ namespace Vpassbackend.Controllers
                 Address = createServiceCenterDTO.Address,
                 Station_status = createServiceCenterDTO.Station_status,
                 Latitude = createServiceCenterDTO.Latitude,    // Added Latitude
-                Longitude = createServiceCenterDTO.Longitude   // Added Longitude
+                Longitude = createServiceCenterDTO.Longitude,  // Added Longitude
+                DefaultDailyAppointmentLimit = createServiceCenterDTO.DefaultDailyAppointmentLimit
             };
 
             _context.ServiceCenters.Add(serviceCenter);
             await _context.SaveChangesAsync();
 
-            // Add default daily limits for the next 30 days
-            var defaultMaxAppointments = 20; // Default limit per day
+            // Add default daily limits for the next 30 days using configurable limit
+            var maxAppointments = createServiceCenterDTO.DefaultDailyAppointmentLimit;
             var startDate = DateOnly.FromDateTime(DateTime.Today);
             
             for (int i = 0; i < 30; i++)
@@ -129,7 +139,7 @@ namespace Vpassbackend.Controllers
                 {
                     Station_id = serviceCenter.Station_id,
                     Date = startDate.AddDays(i),
-                    MaxAppointments = defaultMaxAppointments,
+                    MaxAppointments = maxAppointments,
                     CurrentAppointments = 0
                 };
                 _context.ServiceCenterDailyLimits.Add(dailyLimit);
@@ -148,7 +158,8 @@ namespace Vpassbackend.Controllers
                 Address = serviceCenter.Address,
                 Station_status = serviceCenter.Station_status,
                 Latitude = serviceCenter.Latitude,             // Added Latitude
-                Longitude = serviceCenter.Longitude            // Added Longitude
+                Longitude = serviceCenter.Longitude,           // Added Longitude
+                DefaultDailyAppointmentLimit = serviceCenter.DefaultDailyAppointmentLimit
             };
 
             return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.Station_id }, serviceCenterDTO);

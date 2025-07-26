@@ -21,7 +21,7 @@ namespace Vpassbackend.Controllers
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
         private const string MerchantId = "1230582"; // TODO: Move to config
         private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://428b46b34e0b.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string NotifyUrl = "https://c8546ee5249f.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
         private const string ReturnUrl = "http://localhost:8080/payment-success"; // TODO: Replace with your frontend return URL
         private const string CancelUrl = "http://localhost:8080/payment-cancel"; // TODO: Replace with your frontend cancel URL
 

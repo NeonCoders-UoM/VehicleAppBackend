@@ -91,5 +91,73 @@ namespace Vpassbackend.Controllers
                 return NotFound(new { message = knf.Message });
             }
         }
+
+        // Cleanup duplicate appointments - keep only the latest one for each customer/vehicle/date
+        [HttpDelete("cleanup-duplicates")]
+        public async Task<IActionResult> CleanupDuplicateAppointments()
+        {
+            try
+            {
+                var result = await _service.CleanupDuplicateAppointmentsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error during cleanup", error = ex.Message });
+            }
+        }
+
+        // Get appointment statistics
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetAppointmentStatistics()
+        {
+            try
+            {
+                var result = await _service.GetAppointmentStatisticsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error getting statistics", error = ex.Message });
+            }
+        }
+
+        // Calculate service cost without creating appointment
+        [HttpPost("calculate-cost")]
+        public async Task<IActionResult> CalculateServiceCost([FromBody] AppointmentCreateDTO dto)
+        {
+            try
+            {
+                var cost = await _service.CalculateServiceCostAsync(dto.Station_id, dto.ServiceIds);
+                return Ok(new { totalCost = cost });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while calculating cost", error = ex.Message });
+            }
+        }
+
+        // Create confirmed appointment (for final booking)
+        [HttpPost("create-confirmed")]
+        public async Task<IActionResult> CreateConfirmed([FromBody] AppointmentCreateDTO dto)
+        {
+            try
+            {
+                var result = await _service.CreateConfirmedAppointmentAsync(dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

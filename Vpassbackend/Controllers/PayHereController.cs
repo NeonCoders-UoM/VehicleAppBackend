@@ -8,6 +8,7 @@ using Vpassbackend.Models;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
@@ -20,14 +21,17 @@ namespace Vpassbackend.Controllers
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
         private const string MerchantId = "1230582"; // TODO: Move to config
         private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://d0aaf8a77ee4.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string NotifyUrl = "https://c8546ee5249f.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
         private const string ReturnUrl = "http://localhost:8080/payment-success"; // TODO: Replace with your frontend return URL
         private const string CancelUrl = "http://localhost:8080/payment-cancel"; // TODO: Replace with your frontend cancel URL
 
-        public PayHereController(ApplicationDbContext context, IHttpClientFactory httpClientFactory)
+        private readonly AppointmentPaymentService _appointmentPaymentService;
+
+        public PayHereController(ApplicationDbContext context, IHttpClientFactory httpClientFactory, AppointmentPaymentService appointmentPaymentService)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
+            _appointmentPaymentService = appointmentPaymentService;
         }
 
         // DTO for session creation
@@ -36,6 +40,9 @@ namespace Vpassbackend.Controllers
             public int VehicleId { get; set; }
             public string UserEmail { get; set; }
             public string UserName { get; set; }
+            public int? AppointmentId { get; set; } // Optional: for appointment payments
+            public decimal? Amount { get; set; } // Optional: for custom amounts
+            public int CustomerId { get; set; } // Add this for appointment payments
         }
 
         [HttpPost("create-session")]
@@ -48,25 +55,77 @@ namespace Vpassbackend.Controllers
                 return NotFound(new { message = "Vehicle not found" });
             }
 
-            // Create or get Invoice for this vehicle/payment
-            var invoice = new Invoice
+            // Determine payment amount and order details
+            decimal paymentAmount = 500m; // Default for PDF downloads
+            string orderId;
+            string returnUrl;
+            string items = "Service History PDF";
+
+            if (request.AppointmentId.HasValue && request.Amount.HasValue)
             {
-                VehicleId = request.VehicleId,
-                Vehicle = vehicle, // set required navigation property
-                TotalCost = 500,
-                InvoiceDate = DateTime.UtcNow
-            };
-            _context.Invoices.Add(invoice);
-            await _context.SaveChangesAsync();
+                // Appointment payment - create invoice like PDF payments
+                var invoice = new Invoice
+                {
+                    VehicleId = request.VehicleId,
+                    Vehicle = vehicle,
+                    TotalCost = request.Amount.Value,
+                    InvoiceDate = DateTime.UtcNow
+                };
+                _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
 
-            // Create orderId for PayHere (must be unique)
-            var orderId = $"invoice_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                paymentAmount = request.Amount.Value;
+                orderId = $"appointment_{request.AppointmentId}_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                returnUrl = $"http://localhost:8080/payment_success.html?appointmentId={request.AppointmentId}&order_id={orderId}";
+                items = "Appointment Advance Payment";
 
-            // Set return_url to service history page with vehicleId and order_id
-            var returnUrl = $"http://localhost:8080/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
+                // Store PaymentLog as pending for appointment payments too
+                var paymentLog = new PaymentLog
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    PaymentDate = null,
+                    Status = "Pending"
+                };
+                _context.PaymentLogs.Add(paymentLog);
+                await _context.SaveChangesAsync();
+
+                // Update appointment status to Payment_Pending
+                var appointment = await _context.Appointments.FindAsync(request.AppointmentId.Value);
+                if (appointment != null)
+                {
+                    appointment.Status = "Payment_Pending";
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                // PDF download payment
+                var invoice = new Invoice
+                {
+                    VehicleId = request.VehicleId,
+                    Vehicle = vehicle,
+                    TotalCost = paymentAmount,
+                    InvoiceDate = DateTime.UtcNow
+                };
+                _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
+
+                orderId = $"invoice_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+                returnUrl = $"http://localhost:8080/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
+
+                // Store PaymentLog as pending (only for PDF payments)
+                var paymentLog = new PaymentLog
+                {
+                    InvoiceId = invoice.InvoiceId,
+                    PaymentDate = null,
+                    Status = "Pending"
+                };
+                _context.PaymentLogs.Add(paymentLog);
+                await _context.SaveChangesAsync();
+            }
 
             // Prepare PayHere payment object
-            var amount = "500.00";
+            var amount = paymentAmount.ToString("F2");
             var currency = "LKR";
             var hash = GeneratePayHereHash(MerchantId, orderId, amount, currency, MerchantSecret);
 
@@ -77,7 +136,7 @@ namespace Vpassbackend.Controllers
                 cancel_url = CancelUrl,
                 notify_url = NotifyUrl,
                 order_id = orderId,
-                items = "Service History PDF",
+                items = items,
                 amount = amount,
                 currency = currency,
                 first_name = request.UserName,
@@ -89,16 +148,6 @@ namespace Vpassbackend.Controllers
                 country = "Sri Lanka",
                 hash = hash
             };
-
-            // Store PaymentLog as pending
-            var paymentLog = new PaymentLog
-            {
-                InvoiceId = invoice.InvoiceId,
-                PaymentDate = null,
-                Status = "Pending"
-            };
-            _context.PaymentLogs.Add(paymentLog);
-            await _context.SaveChangesAsync();
 
             // Return PayHere payment URL and orderId to frontend
             // (PayHere expects a POST form, so frontend will need to POST to PayHere with these fields)
@@ -139,6 +188,8 @@ namespace Vpassbackend.Controllers
         [HttpPost("notify")]
         public async Task<IActionResult> Notify()
         {
+            Console.WriteLine("PayHere notify endpoint called");
+            
             // PayHere sends form-urlencoded data
             var form = await Request.ReadFormAsync();
             var orderId = form["order_id"].ToString();
@@ -146,22 +197,50 @@ namespace Vpassbackend.Controllers
             var paymentStatus = statusCode == "2" ? "Paid" : "Failed";
             var paidAt = DateTime.UtcNow;
 
-            // Find invoice by orderId (parse invoiceId from orderId string)
-            int invoiceId = 0;
-            if (orderId.StartsWith("invoice_") && int.TryParse(orderId.Split('_')[1], out invoiceId))
+            Console.WriteLine($"Received notification - orderId: {orderId}, statusCode: {statusCode}, paymentStatus: {paymentStatus}");
+
+            // Handle different payment types
+            if (orderId.StartsWith("invoice_"))
             {
-                var paymentLog = await _context.PaymentLogs
-                    .Include(p => p.Invoice)
-                    .Where(p => p.InvoiceId == invoiceId)
-                    .OrderByDescending(p => p.LogId)
-                    .FirstOrDefaultAsync();
-                if (paymentLog != null)
+                Console.WriteLine("Processing invoice payment");
+                // PDF download payment
+                int invoiceId = 0;
+                if (int.TryParse(orderId.Split('_')[1], out invoiceId))
                 {
-                    paymentLog.Status = paymentStatus;
-                    paymentLog.PaymentDate = paidAt;
-                    await _context.SaveChangesAsync();
+                    var paymentLog = await _context.PaymentLogs
+                        .Include(p => p.Invoice)
+                        .Where(p => p.InvoiceId == invoiceId)
+                        .OrderByDescending(p => p.LogId)
+                        .FirstOrDefaultAsync();
+                    if (paymentLog != null)
+                    {
+                        paymentLog.Status = paymentStatus;
+                        paymentLog.PaymentDate = paidAt;
+                        await _context.SaveChangesAsync();
+                        Console.WriteLine($"Invoice payment status updated to {paymentStatus}");
+                    }
                 }
             }
+            else if (orderId.StartsWith("appointment_"))
+            {
+                Console.WriteLine("Processing appointment payment");
+                // Appointment payment - update via AppointmentPaymentService
+                var success = await _appointmentPaymentService.UpdatePaymentStatusAsync(orderId, paymentStatus);
+                if (!success)
+                {
+                    // Log error but don't fail the notification
+                    Console.WriteLine($"Failed to update appointment payment status for orderId: {orderId}");
+                }
+                else
+                {
+                    Console.WriteLine($"Appointment payment status updated successfully");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Unknown orderId format: {orderId}");
+            }
+            
             return Ok();
         }
 
@@ -183,6 +262,41 @@ namespace Vpassbackend.Controllers
                 }
             }
             return NotFound(new { status = "Unknown" });
+        }
+
+        // Cleanup endpoint to remove pending appointments
+        [HttpDelete("cleanup-pending")]
+        public async Task<IActionResult> CleanupPendingAppointments()
+        {
+            try
+            {
+                var pendingAppointments = await _context.Appointments
+                    .Where(a => a.Status == "Pending")
+                    .ToListAsync();
+
+                foreach (var appointment in pendingAppointments)
+                {
+                    // Remove associated services first
+                    var services = await _context.AppointmentServices
+                        .Where(asv => asv.AppointmentId == appointment.AppointmentId)
+                        .ToListAsync();
+                    _context.AppointmentServices.RemoveRange(services);
+                    
+                    // Remove appointment
+                    _context.Appointments.Remove(appointment);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    message = $"Removed {pendingAppointments.Count} pending appointments",
+                    removedCount = pendingAppointments.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error during cleanup", error = ex.Message });
+            }
         }
     }
 } 

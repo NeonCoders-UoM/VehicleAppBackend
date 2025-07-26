@@ -60,6 +60,9 @@ builder.Services.AddHostedService<NotificationBackgroundService>();
 builder.Services.AddHostedService<ServiceReminderNotificationBackgroundService>();
 
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<AppointmentPaymentService>();
+builder.Services.AddScoped<ServiceCenterSearchService>();
+builder.Services.AddScoped<DailyLimitService>();
 
 builder.Services.AddScoped<AzureBlobService>();
 

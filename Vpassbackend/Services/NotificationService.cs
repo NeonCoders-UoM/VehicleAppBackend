@@ -10,6 +10,7 @@ namespace Vpassbackend.Services
         Task CreateServiceReminderNotificationAsync(ServiceReminder serviceReminder);
         Task CreateAppointmentNotificationAsync(Appointment appointment, string message);
         Task CreateGeneralNotificationAsync(int customerId, string title, string message, string priority = "Medium");
+        Task CleanupDuplicateNotificationsAsync();
     }
 
     public class NotificationService : INotificationService
@@ -126,6 +127,21 @@ namespace Vpassbackend.Services
 
                 if (appointmentWithDetails?.Customer != null)
                 {
+                    // Check for existing notifications for this appointment within the last 5 minutes
+                    // This prevents duplicate notifications from multiple requests
+                    var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
+                    var existingNotification = await _context.Notifications
+                        .Where(n => n.AppointmentId == appointment.AppointmentId && 
+                                   n.Type == "appointment" && 
+                                   n.CreatedAt >= fiveMinutesAgo)
+                        .FirstOrDefaultAsync();
+
+                    if (existingNotification != null)
+                    {
+                        _logger.LogInformation($"Skipping duplicate appointment notification for appointment {appointment.AppointmentId} - notification already exists");
+                        return;
+                    }
+
                     // Get service names
                     var serviceNames = appointmentWithDetails.AppointmentServices
                         .Select(s => s.Service.ServiceName)
@@ -173,6 +189,23 @@ namespace Vpassbackend.Services
                 var customer = await _context.Customers.FindAsync(customerId);
                 if (customer != null)
                 {
+                    // Check for existing notifications with the same title and message within the last 5 minutes
+                    // This prevents duplicate notifications from multiple requests
+                    var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
+                    var existingNotification = await _context.Notifications
+                        .Where(n => n.CustomerId == customerId && 
+                                   n.Type == "general" && 
+                                   n.Title == title && 
+                                   n.Message == message && 
+                                   n.CreatedAt >= fiveMinutesAgo)
+                        .FirstOrDefaultAsync();
+
+                    if (existingNotification != null)
+                    {
+                        _logger.LogInformation($"Skipping duplicate general notification for customer {customerId} - notification already exists");
+                        return;
+                    }
+
                     var notification = new Notification
                     {
                         CustomerId = customerId,
@@ -202,6 +235,46 @@ namespace Vpassbackend.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error creating general notification for customer {customerId}");
+            }
+        }
+
+        public async Task CleanupDuplicateNotificationsAsync()
+        {
+            try
+            {
+                // Find and remove duplicate notifications created within the same minute
+                // This helps clean up any existing duplicates
+                var duplicateGroups = await _context.Notifications
+                    .Where(n => n.CreatedAt >= DateTime.UtcNow.AddDays(-1)) // Only check recent notifications
+                    .GroupBy(n => new 
+                    { 
+                        n.CustomerId, 
+                        n.Type, 
+                        n.Title, 
+                        n.Message,
+                        CreatedMinute = new DateTime(n.CreatedAt.Year, n.CreatedAt.Month, n.CreatedAt.Day, n.CreatedAt.Hour, n.CreatedAt.Minute, 0)
+                    })
+                    .Where(g => g.Count() > 1)
+                    .ToListAsync();
+
+                int totalRemoved = 0;
+                foreach (var group in duplicateGroups)
+                {
+                    // Keep the first notification, remove the rest
+                    var duplicatesToRemove = group.Skip(1).ToList();
+                    _context.Notifications.RemoveRange(duplicatesToRemove);
+                    totalRemoved += duplicatesToRemove.Count;
+                }
+
+                if (totalRemoved > 0)
+                {
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Cleaned up {totalRemoved} duplicate notifications");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up duplicate notifications");
             }
         }
     }

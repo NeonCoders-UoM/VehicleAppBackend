@@ -91,5 +91,15 @@ namespace Vpassbackend.Controllers
                 return NotFound(new { message = knf.Message });
             }
         }
+
+        // POST: api/Appointment/{appointmentId}/complete
+        [HttpPost("{appointmentId}/complete")]
+        public async Task<IActionResult> CompleteAppointment(int appointmentId)
+        {
+            var result = await _service.CompleteAppointmentAsync(appointmentId);
+            if (!result)
+                return NotFound(new { message = "Appointment not found." });
+            return Ok(new { message = "Appointment marked as completed and notification sent." });
+        }
     }
 }

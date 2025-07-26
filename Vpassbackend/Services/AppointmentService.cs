@@ -8,7 +8,12 @@ namespace Vpassbackend.Services
     public class AppointmentService
     {
         private readonly ApplicationDbContext _db;
-        public AppointmentService(ApplicationDbContext db) => _db = db;
+        private readonly NotificationService _notificationService;
+        public AppointmentService(ApplicationDbContext db, NotificationService notificationService)
+        {
+            _db = db;
+            _notificationService = notificationService;
+        }
 
         public async Task<AppointmentSummaryForCustomerDTO> CreateAppointmentAsync(AppointmentCreateDTO dto)
         {
@@ -196,6 +201,19 @@ namespace Vpassbackend.Services
                 Notes = appointment.Description
                 //BookingFee = appointment.AppointmentPrice ?? 0
             };
+        }
+
+        public async Task<bool> CompleteAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments.FindAsync(appointmentId);
+            if (appointment == null)
+                return false;
+            if (appointment.Status == "Completed")
+                return true; // Already completed
+            appointment.Status = "Completed";
+            await _db.SaveChangesAsync();
+            await _notificationService.CreateAppointmentNotificationAsync(appointment, "Your service appointment has been completed. Thank you for choosing us!");
+            return true;
         }
     }
 }

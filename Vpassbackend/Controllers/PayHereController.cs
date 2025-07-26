@@ -20,9 +20,9 @@ namespace Vpassbackend.Controllers
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
         private const string MerchantId = "1230582"; // TODO: Move to config
         private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://d0aaf8a77ee4.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
-        private const string ReturnUrl = "http://localhost:8080/payment-success"; // TODO: Replace with your frontend return URL
-        private const string CancelUrl = "http://localhost:8080/payment-cancel"; // TODO: Replace with your frontend cancel URL
+        private const string NotifyUrl = "https://22a000047eaa.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string ReturnUrl = "http://localhost:8081/payment-success"; // TODO: Replace with your frontend return URL
+        private const string CancelUrl = "http://localhost:8081/payment-cancel"; // TODO: Replace with your frontend cancel URL
 
         public PayHereController(ApplicationDbContext context, IHttpClientFactory httpClientFactory)
         {
@@ -63,7 +63,7 @@ namespace Vpassbackend.Controllers
             var orderId = $"invoice_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
             // Set return_url to service history page with vehicleId and order_id
-            var returnUrl = $"http://localhost:8080/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
+            var returnUrl = $"http://localhost:8081/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
 
             // Prepare PayHere payment object
             var amount = "500.00";

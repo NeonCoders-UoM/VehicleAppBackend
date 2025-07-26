@@ -10,65 +10,55 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// CORS policy name
+const string CorsPolicy = "UnifiedPolicy";
+
 // Configure EF Core
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure CORS for development - Allow any origin during development
+// Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin", policy =>
-    {
-        // For Flutter development and troubleshooting, we're setting a very permissive CORS policy
-        // WARNING: This is only for development! In production, restrict this to specific origins.
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .WithExposedHeaders("Content-Disposition"); // For file downloads
-
-        // NOTE: AllowAnyOrigin and AllowCredentials cannot be used together
-        // If you need credentials, use specific origins instead of AllowAnyOrigin
-    });
-
-    // Add a more restrictive policy for production use
-    options.AddPolicy("Production", policy =>
+    options.AddPolicy(CorsPolicy, policy =>
     {
         policy.WithOrigins(
-                "http://localhost:2027",  // Flutter web
-                "http://127.0.0.1:2027",  // Flutter alternative
-                "https://yourproductionsite.com")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+                "http://localhost:3000",  // React
+                "http://localhost:2027",  // Flutter dev server
+                "http://127.0.0.1:2027",  // Flutter alt
+                "http://localhost:8081"   // Another Flutter web port
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .WithExposedHeaders("Content-Disposition");
     });
 });
 
-// Add services
+// Services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-
-builder.Services.AddScoped<IFuelEfficiencyService, FuelEfficiencyService>();
-
-builder.Services.AddScoped<IPdfService, PdfService>();
-
-// Add notification services
-builder.Services.AddScoped<INotificationService, NotificationService>();
-
-// Add background services
-builder.Services.AddHostedService<NotificationBackgroundService>();
-
-builder.Services.AddHostedService<ServiceReminderNotificationBackgroundService>();
-
-builder.Services.AddScoped<AppointmentService>();
-
-builder.Services.AddScoped<AzureBlobService>();
-
 builder.Services.AddScoped<ILoyaltyPointsService, LoyaltyPointsService>();
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IFuelEfficiencyService, FuelEfficiencyService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<AzureBlobService>();
 builder.Services.AddHttpClient();
 
+// Background services
+builder.Services.AddHostedService<NotificationBackgroundService>();
+builder.Services.AddHostedService<ServiceReminderNotificationBackgroundService>();
 
-// Configure JWT Authentication
+builder.Services.AddScoped<AppointmentService>(provider =>
+    new AppointmentService(
+        provider.GetRequiredService<ApplicationDbContext>(),
+        provider.GetRequiredService<INotificationService>(),
+        provider.GetRequiredService<ILoyaltyPointsService>(),
+        provider.GetRequiredService<ILogger<AppointmentService>>()
+    )
+);
+
+// JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
@@ -77,15 +67,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "DefaultIssuer",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "DefaultAudience",
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultKeyMustBeLongEnoughForSecurity123456")),
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "DefaultKeyMustBeLongEnough123456789")),
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.Zero // Strict token expiration validation
+        ClockSkew = TimeSpan.Zero
     };
 
-    // For SPA applications
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -97,7 +86,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     };
 });
 
-// Add controller services & Swagger
+// Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -145,26 +134,23 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"An error occurred while seeding the database: {ex.Message}");
         Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
-        // Continue with application startup even if seeding fails
     }
 }
 
-// Configure HTTP pipeline
+// Development config
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    // Add a redirect from root to Swagger UI
     app.MapGet("/", () => Results.Redirect("/swagger"));
 }
 
 app.UseHttpsRedirection();
 
-// Important: CORS must come before other middleware
-app.UseCors("AllowAnyOrigin");
+// CORS must come early
+app.UseCors(CorsPolicy);
 
-// Handle OPTIONS requests for CORS preflight
+// Handle preflight
 app.Use(async (context, next) =>
 {
     if (context.Request.Method == "OPTIONS")
@@ -179,32 +165,23 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Set up controllers with default routes
-app.MapControllers();
-
-// Configure routing options - unfortunately MapControllers doesn't take options directly
-RouteOptions routeOptions = app.Services.GetRequiredService<IOptions<RouteOptions>>().Value;
-routeOptions.LowercaseUrls = true; // This helps with case sensitivity
-
-// Global exception handler
+// Log 404s for /api
 app.Use(async (context, next) =>
 {
     try
     {
         await next();
-
-        // If a 404 occurs, it might be due to case sensitivity in routes
         if (context.Response.StatusCode == 404 && context.Request.Path.StartsWithSegments("/api"))
         {
-            // Log the 404 for debugging
-            Console.WriteLine($"404 Error: {context.Request.Method} {context.Request.Path}");
+            Console.WriteLine($"404 Not Found: {context.Request.Method} {context.Request.Path}");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Global error handler caught: {ex.Message}");
+        Console.WriteLine($"Global error: {ex.Message}");
         await next();
     }
 });
 
+app.MapControllers();
 app.Run();

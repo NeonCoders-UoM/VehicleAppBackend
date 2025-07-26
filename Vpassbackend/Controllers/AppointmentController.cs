@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Vpassbackend.DTOs;
 using Vpassbackend.Services;
+using Microsoft.EntityFrameworkCore;
+using Vpassbackend.Data;
 
 namespace Vpassbackend.Controllers
 {
@@ -9,7 +11,13 @@ namespace Vpassbackend.Controllers
     public class AppointmentController : ControllerBase
     {
         private readonly AppointmentService _service;
-        public AppointmentController(AppointmentService service) => _service = service;
+        private readonly ApplicationDbContext _context;
+        
+        public AppointmentController(AppointmentService service, ApplicationDbContext context) 
+        { 
+            _service = service; 
+            _context = context;
+        }
 
         // Customer creates a new appointment
         [HttpPost]
@@ -89,6 +97,59 @@ namespace Vpassbackend.Controllers
             catch (KeyNotFoundException knf)
             {
                 return NotFound(new { message = knf.Message });
+            }
+        }
+
+        // POST: api/Appointment/{appointmentId}/complete
+        [HttpPost("{appointmentId}/complete")]
+        public async Task<IActionResult> CompleteAppointment(int appointmentId)
+        {
+            var result = await _service.CompleteAppointmentAsync(appointmentId);
+            if (!result)
+                return NotFound(new { message = "Appointment not found." });
+            return Ok(new { message = "Appointment marked as completed and notification sent." });
+        }
+
+        // GET: api/Appointment/{appointmentId}/loyalty-points
+        [HttpGet("{appointmentId}/loyalty-points")]
+        public async Task<IActionResult> GetAppointmentLoyaltyPoints(int appointmentId)
+        {
+            try
+            {
+                var appointment = await _context.Appointments
+                    .Include(a => a.AppointmentServices)
+                    .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+                if (appointment == null)
+                    return NotFound(new { message = "Appointment not found." });
+
+                // Get service IDs from the appointment
+                var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
+
+                // Get loyalty points from service center services
+                var serviceCenterServices = await _context.ServiceCenterServices
+                    .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
+                    .ToListAsync();
+
+                int totalLoyaltyPoints = serviceCenterServices.Sum(scs => scs.LoyaltyPoints ?? 0);
+
+                return Ok(new
+                {
+                    appointmentId = appointmentId,
+                    customerId = appointment.CustomerId,
+                    vehicleId = appointment.VehicleId,
+                    stationId = appointment.Station_id,
+                    loyaltyPoints = totalLoyaltyPoints,
+                    services = serviceCenterServices.Select(scs => new
+                    {
+                        serviceId = scs.ServiceId,
+                        loyaltyPoints = scs.LoyaltyPoints ?? 0
+                    }).ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving appointment loyalty points", error = ex.Message });
             }
         }
     }

@@ -1,4 +1,6 @@
 using Vpassbackend.Models;
+using Microsoft.EntityFrameworkCore;
+using Vpassbackend.Data;
 
 namespace Vpassbackend.Services
 {
@@ -6,10 +8,19 @@ namespace Vpassbackend.Services
     {
         int CalculateLoyaltyPoints(decimal basePrice, decimal? packagePercentage);
         decimal CalculateDiscountedPrice(decimal basePrice, decimal? packagePercentage);
+        Task<int> GetCustomerTotalLoyaltyPointsAsync(int customerId);
+        Task<bool> UpdateCustomerLoyaltyPointsAsync(int customerId, int pointsToAdd);
     }
 
     public class LoyaltyPointsService : ILoyaltyPointsService
     {
+        private readonly ApplicationDbContext _context;
+
+        public LoyaltyPointsService(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         public int CalculateLoyaltyPoints(decimal basePrice, decimal? packagePercentage)
         {
             if (!packagePercentage.HasValue || packagePercentage.Value <= 0)
@@ -38,6 +49,27 @@ namespace Vpassbackend.Services
             
             // Return discounted price
             return basePrice - discountAmount;
+        }
+
+        public async Task<int> GetCustomerTotalLoyaltyPointsAsync(int customerId)
+        {
+            var customer = await _context.Customers
+                .Where(c => c.CustomerId == customerId)
+                .Select(c => c.LoyaltyPoints)
+                .FirstOrDefaultAsync();
+
+            return customer;
+        }
+
+        public async Task<bool> UpdateCustomerLoyaltyPointsAsync(int customerId, int pointsToAdd)
+        {
+            var customer = await _context.Customers.FindAsync(customerId);
+            if (customer == null)
+                return false;
+
+            customer.LoyaltyPoints += pointsToAdd;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 } 

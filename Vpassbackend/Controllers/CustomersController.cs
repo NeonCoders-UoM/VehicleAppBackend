@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Vpassbackend.Data;
 using Vpassbackend.DTOs;
 using Vpassbackend.Models;
+using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
@@ -12,10 +13,12 @@ namespace Vpassbackend.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILoyaltyPointsService _loyaltyPointsService;
 
-        public CustomersController(ApplicationDbContext context)
+        public CustomersController(ApplicationDbContext context, ILoyaltyPointsService loyaltyPointsService)
         {
             _context = context;
+            _loyaltyPointsService = loyaltyPointsService;
         }
 
         // GET: api/Customers
@@ -219,6 +222,26 @@ namespace Vpassbackend.Controllers
             _context.Vehicles.Remove(vehicle);
             await _context.SaveChangesAsync();
             return Ok("Vehicle deleted successfully.");
+        }
+
+        // GET: api/Customers/{id}/loyalty-points
+        [HttpGet("{id}/loyalty-points")]
+        public async Task<IActionResult> GetCustomerLoyaltyPoints(int id)
+        {
+            try
+            {
+                var totalPoints = await _loyaltyPointsService.GetCustomerTotalLoyaltyPointsAsync(id);
+                
+                return Ok(new CustomerLoyaltyPointsDTO
+                {
+                    CustomerId = id,
+                    TotalLoyaltyPoints = totalPoints
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving loyalty points", error = ex.Message });
+            }
         }
     }
 }

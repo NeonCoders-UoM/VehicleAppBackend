@@ -184,6 +184,22 @@ namespace Vpassbackend.Controllers
                     return NotFound("Customer not found");
                 }
 
+                // Check for duplicate notifications within the last 5 minutes
+                var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
+                var existingNotification = await _context.Notifications
+                    .Where(n => n.CustomerId == createDto.CustomerId && 
+                               n.Type == createDto.Type && 
+                               n.Title == createDto.Title && 
+                               n.Message == createDto.Message && 
+                               n.CreatedAt >= fiveMinutesAgo)
+                    .FirstOrDefaultAsync();
+
+                if (existingNotification != null)
+                {
+                    _logger.LogInformation($"Skipping duplicate notification for customer {createDto.CustomerId} - notification already exists");
+                    return Ok(new { message = "Notification already exists", notificationId = existingNotification.NotificationId });
+                }
+
                 // Set priority color based on priority if not provided
                 var priorityColor = createDto.PriorityColor;
                 if (string.IsNullOrEmpty(priorityColor))
@@ -554,6 +570,22 @@ namespace Vpassbackend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating notifications from service reminders");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // POST: api/Notifications/CleanupDuplicates
+        [HttpPost("CleanupDuplicates")]
+        public async Task<ActionResult> CleanupDuplicateNotifications()
+        {
+            try
+            {
+                await _notificationService.CleanupDuplicateNotificationsAsync();
+                return Ok(new { message = "Duplicate notifications cleanup completed" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up duplicate notifications");
                 return StatusCode(500, "Internal server error");
             }
         }

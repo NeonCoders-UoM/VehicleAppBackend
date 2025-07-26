@@ -8,7 +8,17 @@ namespace Vpassbackend.Services
     public class AppointmentService
     {
         private readonly ApplicationDbContext _db;
-        public AppointmentService(ApplicationDbContext db) => _db = db;
+        private readonly INotificationService _notificationService;
+        private readonly ILoyaltyPointsService _loyaltyPointsService;
+        private readonly ILogger<AppointmentService> _logger;
+        
+        public AppointmentService(ApplicationDbContext db, INotificationService notificationService, ILoyaltyPointsService loyaltyPointsService, ILogger<AppointmentService> logger)
+        {
+            _db = db;
+            _notificationService = notificationService;
+            _loyaltyPointsService = loyaltyPointsService;
+            _logger = logger;
+        }
 
         public async Task<AppointmentSummaryForCustomerDTO> CreateAppointmentAsync(AppointmentCreateDTO dto)
         {
@@ -55,6 +65,22 @@ namespace Vpassbackend.Services
                 .Where(sc => sc.Station_id == dto.Station_id)
                 .Select(sc => sc.Station_name)
                 .FirstOrDefaultAsync() ?? "Unknown";
+
+            // Send notification for successful appointment creation
+            try
+            {
+                await _notificationService.CreateAppointmentNotificationAsync(
+                    appointment, 
+                    $"Your appointment has been successfully scheduled for {appointment.AppointmentDate:MMM dd, yyyy} at {stationName}. We look forward to serving you!"
+                );
+            }
+            catch (Exception ex)
+            {
+                // Log the notification error but don't fail the appointment creation
+                // The appointment was successfully created, so we don't want to roll it back
+                // due to a notification failure
+                _logger.LogWarning(ex, "Failed to send appointment creation notification for appointment {AppointmentId}", appointment.AppointmentId);
+            }
 
             return new AppointmentSummaryForCustomerDTO
             {
@@ -196,6 +222,58 @@ namespace Vpassbackend.Services
                 Notes = appointment.Description
                 //BookingFee = appointment.AppointmentPrice ?? 0
             };
+        }
+
+        public async Task<bool> CompleteAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+                
+            if (appointment == null)
+                return false;
+            if (appointment.Status == "Completed")
+                return true; // Already completed
+
+            // Calculate total loyalty points from all services in this appointment
+            var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
+            var serviceCenterServices = await _db.ServiceCenterServices
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
+                .ToListAsync();
+
+            int totalLoyaltyPoints = serviceCenterServices.Sum(scs => scs.LoyaltyPoints ?? 0);
+
+            // Update appointment status
+            appointment.Status = "Completed";
+            await _db.SaveChangesAsync();
+
+            // Add loyalty points to customer
+            if (totalLoyaltyPoints > 0)
+            {
+                var pointsAdded = await _loyaltyPointsService.UpdateCustomerLoyaltyPointsAsync(appointment.CustomerId, totalLoyaltyPoints);
+                if (pointsAdded)
+                {
+                    _logger.LogInformation($"Added {totalLoyaltyPoints} loyalty points to customer {appointment.CustomerId} for completed appointment {appointmentId}");
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to add loyalty points to customer {appointment.CustomerId} for appointment {appointmentId}");
+                }
+            }
+            
+            try
+            {
+                await _notificationService.CreateAppointmentNotificationAsync(appointment, "Your service appointment has been completed. Thank you for choosing us!");
+            }
+            catch (Exception ex)
+            {
+                // Log the notification error but don't fail the appointment completion
+                // The appointment was successfully completed, so we don't want to roll it back
+                // due to a notification failure
+                _logger.LogWarning(ex, "Failed to send appointment completion notification for appointment {AppointmentId}", appointmentId);
+            }
+            
+            return true;
         }
     }
 }

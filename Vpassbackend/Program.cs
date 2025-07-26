@@ -56,12 +56,16 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add background services
 builder.Services.AddHostedService<NotificationBackgroundService>();
+
 builder.Services.AddHostedService<ServiceReminderNotificationBackgroundService>();
+
 builder.Services.AddScoped<AppointmentService>();
 
 builder.Services.AddScoped<AzureBlobService>();
 
 builder.Services.AddScoped<ILoyaltyPointsService, LoyaltyPointsService>();
+
+builder.Services.AddHttpClient();
 
 
 // Configure JWT Authentication

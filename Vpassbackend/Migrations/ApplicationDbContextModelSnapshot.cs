@@ -1062,7 +1062,7 @@ namespace Vpassbackend.Migrations
                     b.HasOne("Vpassbackend.Models.ServiceReminder", "ServiceReminder")
                         .WithMany()
                         .HasForeignKey("ServiceReminderId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
                         .WithMany()

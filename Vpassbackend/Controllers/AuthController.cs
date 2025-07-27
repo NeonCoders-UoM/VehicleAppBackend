@@ -391,5 +391,48 @@ namespace Vpassbackend.Controllers
                 return BadRequest($"Test error: {ex.Message}");
             }
         }
+
+        [HttpPost("google-login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto dto)
+        {
+            try
+            {
+                // Verify Google ID token
+                var payload = await _tokenService.VerifyGoogleToken(dto.IdToken);
+
+                // Check if customer exists
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Email == payload.Email);
+
+                if (customer == null)
+                {
+                    // Create new customer
+                    customer = new Customer
+                    {
+                        FirstName = payload.GivenName ?? "Unknown",
+                        LastName = payload.FamilyName ?? "Unknown",
+                        Email = payload.Email,
+                        PhoneNumber = "Not provided", // Google doesn't provide phone
+                        Address = "Not provided",
+                        NIC = "Not provided",
+                        IsEmailVerified = true, // Google email is verified by default
+                        Password = null // No password for Google users
+                    };
+
+                    _context.Customers.Add(customer);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Generate JWT token
+                var token = _tokenService.CreateTokenForCustomer(customer);
+
+                return Ok(new { token, customerId = customer.CustomerId });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Google login failed: {ex.Message}");
+            }
+        }
     }
 }

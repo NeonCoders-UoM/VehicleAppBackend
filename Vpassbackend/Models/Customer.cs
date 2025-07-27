@@ -24,7 +24,7 @@ namespace Vpassbackend.Models
         public string PhoneNumber { get; set; }
 
         [Required]
-        public string Password { get; set; }
+        public string? Password { get; set; }
 
         [MaxLength(20)]
         public string NIC { get; set; }

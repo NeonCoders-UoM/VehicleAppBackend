@@ -35,7 +35,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:2027",  // Flutter web
-                "http://127.0.0.1:2027",  // Flutter alternative
+                "http://192.168.1.11:5039",  // Flutter alternative
                 "https://yourproductionsite.com")
               .AllowAnyHeader()
               .AllowAnyMethod()

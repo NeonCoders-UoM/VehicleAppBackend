@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Vpassbackend.Models;
+using Google.Apis.Auth;
 
 namespace Vpassbackend.Services
 {
@@ -58,6 +59,23 @@ namespace Vpassbackend.Services
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<GoogleJsonWebSignature.Payload> VerifyGoogleToken(string idToken)
+        {
+            try
+            {
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { "592070367506-h6o0mgh2tg9e5mk1pskvkqc40qfphj98.apps.googleusercontent.com" } // Client ID
+                };
+                var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+                return payload;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Google token verification failed: " + ex.Message);
+            }
         }
 
 

@@ -25,13 +25,26 @@ namespace Vpassbackend.Controllers
             if (_context.Users.Any(u => u.Email == dto.Email))
                 return BadRequest("Email already exists.");
 
+            // Validate ServiceCenterAdmin, Cashier, and DataOperator requirements
+            if (dto.UserRoleId == 3 || dto.UserRoleId == 4 || dto.UserRoleId == 5) // ServiceCenterAdmin, Cashier, DataOperator
+            {
+                if (!dto.Station_id.HasValue)
+                    return BadRequest("ServiceCenterAdmin, Cashier, and DataOperator must be assigned to a service center (Station_id is required).");
+
+                // Validate that the service center exists
+                var serviceCenter = await _context.ServiceCenters.FindAsync(dto.Station_id.Value);
+                if (serviceCenter == null)
+                    return BadRequest($"Service center with Station_id {dto.Station_id.Value} does not exist.");
+            }
+
             var user = new User
             {
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 Email = dto.Email,
                 UserRoleId = dto.UserRoleId,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Station_id = dto.Station_id // Assign to specific service center if provided
             };
 
             _context.Users.Add(user);

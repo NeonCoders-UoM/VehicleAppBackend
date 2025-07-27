@@ -28,6 +28,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> Login(UserLoginDto dto)
         {
             var user = await _context.Users.Include(u => u.UserRole)
+                .Include(u => u.ServiceCenter) // Include ServiceCenter for station_id info
                 .FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
                 return Unauthorized("Invalid credentials");
@@ -38,7 +39,9 @@ namespace Vpassbackend.Controllers
                 token,
                 userId = user.UserId,
                 userRole = user.UserRole.UserRoleName,
-                userRoleId = user.UserRoleId // Explicitly include UserRoleId in response
+                userRoleId = user.UserRoleId,
+                station_id = user.Station_id, // Include station_id for service center admins
+                serviceCenterName = user.ServiceCenter?.Station_name // Include service center name if available
             });
         }
 
@@ -79,6 +82,18 @@ namespace Vpassbackend.Controllers
             if (userRole == null)
                 return BadRequest($"Invalid UserRoleId: {dto.UserRoleId}. Role does not exist.");
 
+            // Validate ServiceCenterAdmin, Cashier, and DataOperator requirements
+            if (dto.UserRoleId == 3 || dto.UserRoleId == 4 || dto.UserRoleId == 5) // ServiceCenterAdmin, Cashier, DataOperator
+            {
+                if (!dto.Station_id.HasValue)
+                    return BadRequest("ServiceCenterAdmin, Cashier, and DataOperator must be assigned to a service center (Station_id is required).");
+
+                // Validate that the service center exists
+                var serviceCenter = await _context.ServiceCenters.FindAsync(dto.Station_id.Value);
+                if (serviceCenter == null)
+                    return BadRequest($"Service center with Station_id {dto.Station_id.Value} does not exist.");
+            }
+
             // Create new user with the specified role
             var user = new User
             {
@@ -86,14 +101,16 @@ namespace Vpassbackend.Controllers
                 LastName = dto.LastName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                UserRoleId = dto.UserRoleId // Use UserRoleId from DTO
+                UserRoleId = dto.UserRoleId, // Use UserRoleId from DTO
+                Station_id = dto.Station_id // Assign to specific service center if provided
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             // Log the user creation with role information
-            Console.WriteLine($"User created: {user.Email} with UserRoleId: {user.UserRoleId} ({userRole.UserRoleName})");
+            Console.WriteLine($"User created: {user.Email} with UserRoleId: {user.UserRoleId} ({userRole.UserRoleName})" + 
+                (user.Station_id.HasValue ? $" assigned to Station_id: {user.Station_id}" : ""));
 
             return Ok(new
             {
@@ -101,7 +118,8 @@ namespace Vpassbackend.Controllers
                 userId = user.UserId,
                 email = user.Email,
                 userRoleId = user.UserRoleId,
-                userRoleName = userRole.UserRoleName
+                userRoleName = userRole.UserRoleName,
+                station_id = user.Station_id
             });
         }
 

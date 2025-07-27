@@ -24,5 +24,10 @@ namespace Vpassbackend.Models
         [ForeignKey("UserRole")]
         public int UserRoleId { get; set; }
         public virtual UserRole UserRole { get; set; }
+
+        // Add foreign key to ServiceCenter for ServiceCenterAdmin users
+        [ForeignKey("ServiceCenter")]
+        public int? Station_id { get; set; }
+        public virtual ServiceCenter? ServiceCenter { get; set; }
     }
 }

@@ -43,6 +43,8 @@ namespace Vpassbackend.Migrations
                     IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
                     OtpCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     OtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ForgotPasswordOtp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ForgotPasswordOtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeviceToken = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     LastTokenUpdate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Platform = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -271,7 +273,9 @@ namespace Vpassbackend.Migrations
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UserRoleId = table.Column<int>(type: "int", nullable: false),
-                    Station_id = table.Column<int>(type: "int", nullable: true)
+                    Station_id = table.Column<int>(type: "int", nullable: true),
+                    ForgotPasswordOtp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ForgotPasswordOtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -6,6 +6,7 @@ using Vpassbackend.DTOs;
 using Vpassbackend.Models;
 using Vpassbackend.Services;
 using System;
+using System.Linq;
 
 
 namespace Vpassbackend.Controllers
@@ -546,6 +547,58 @@ namespace Vpassbackend.Controllers
         private bool ServiceCenterServiceExists(int id)
         {
             return _context.ServiceCenterServices.Any(e => e.ServiceCenterServiceId == id);
+        }
+
+        // POST endpoint to support search and filtering of service centers
+        [HttpPost("search")]
+        public async Task<ActionResult<PaginatedResult<ServiceCenterDTO>>> SearchServiceCenters([FromBody] SearchDTO filter)
+        {
+            var query = _context.ServiceCenters.AsQueryable();
+
+            // Apply keyword search (matches name, email, telephone, or address)
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                var keyword = filter.SearchTerm.ToLower();
+                query = query.Where(sc =>
+                    (sc.Station_name != null && sc.Station_name.ToLower().Contains(keyword)) ||
+                    (sc.Email != null && sc.Email.ToLower().Contains(keyword)) ||
+                    (sc.Telephone != null && sc.Telephone.ToLower().Contains(keyword)) ||
+                    (sc.Address != null && sc.Address.ToLower().Contains(keyword)));
+            }
+
+            // Optional status filter (e.g., active/inactive)
+            if (!string.IsNullOrWhiteSpace(filter.Status))
+            {
+                query = query.Where(sc => sc.Station_status != null &&
+                                          sc.Station_status.ToLower() == filter.Status.ToLower());
+            }
+
+            var total = await query.CountAsync(); // Total count before pagination
+
+            // Apply pagination and project to DTO
+            var data = await query
+                .OrderBy(sc => sc.Station_id)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(sc => new ServiceCenterDTO
+                {
+                    Station_id = sc.Station_id,
+                    OwnerName = sc.OwnerName,
+                    VATNumber = sc.VATNumber,
+                    RegisterationNumber = sc.RegisterationNumber,
+                    Station_name = sc.Station_name,
+                    Email = sc.Email,
+                    Telephone = sc.Telephone,
+                    Address = sc.Address,
+                    Station_status = sc.Station_status
+                })
+                .ToListAsync();
+
+            return new PaginatedResult<ServiceCenterDTO>
+            {
+                Data = data,
+                TotalCount = total
+            };
         }
     }
 }

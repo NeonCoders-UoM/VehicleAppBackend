@@ -35,6 +35,10 @@ namespace Vpassbackend.Models
         public string? OtpCode { get; set; }
         public DateTime? OtpExpiry { get; set; }
 
+        // Forgot password fields
+        public string? ForgotPasswordOtp { get; set; }
+        public DateTime? ForgotPasswordOtpExpiry { get; set; }
+
         // Push notification fields
         [MaxLength(300)]
         public string? DeviceToken { get; set; }

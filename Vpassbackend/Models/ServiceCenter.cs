@@ -42,7 +42,8 @@ namespace Vpassbackend.Models
 
         // Navigation properties
         public ICollection<ServiceCenterCheckInPoint> CheckInPoints { get; set; } = new List<ServiceCenterCheckInPoint>();
-
+        public ICollection<User> Users { get; set; } = new List<User>();
+        
         // Many-to-many relationship with Services through ServiceCenterService
         public ICollection<ServiceCenterService> ServiceCenterServices { get; set; } = new List<ServiceCenterService>();
     }

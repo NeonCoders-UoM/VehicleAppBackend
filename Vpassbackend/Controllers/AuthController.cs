@@ -28,6 +28,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> Login(UserLoginDto dto)
         {
             var user = await _context.Users.Include(u => u.UserRole)
+                .Include(u => u.ServiceCenter) // Include ServiceCenter for station_id info
                 .FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
                 return Unauthorized("Invalid credentials");
@@ -38,7 +39,9 @@ namespace Vpassbackend.Controllers
                 token,
                 userId = user.UserId,
                 userRole = user.UserRole.UserRoleName,
-                userRoleId = user.UserRoleId // Explicitly include UserRoleId in response
+                userRoleId = user.UserRoleId,
+                station_id = user.Station_id, // Include station_id for service center admins
+                serviceCenterName = user.ServiceCenter?.Station_name // Include service center name if available
             });
         }
 
@@ -79,6 +82,18 @@ namespace Vpassbackend.Controllers
             if (userRole == null)
                 return BadRequest($"Invalid UserRoleId: {dto.UserRoleId}. Role does not exist.");
 
+            // Validate ServiceCenterAdmin, Cashier, and DataOperator requirements
+            if (dto.UserRoleId == 3 || dto.UserRoleId == 4 || dto.UserRoleId == 5) // ServiceCenterAdmin, Cashier, DataOperator
+            {
+                if (!dto.Station_id.HasValue)
+                    return BadRequest("ServiceCenterAdmin, Cashier, and DataOperator must be assigned to a service center (Station_id is required).");
+
+                // Validate that the service center exists
+                var serviceCenter = await _context.ServiceCenters.FindAsync(dto.Station_id.Value);
+                if (serviceCenter == null)
+                    return BadRequest($"Service center with Station_id {dto.Station_id.Value} does not exist.");
+            }
+
             // Create new user with the specified role
             var user = new User
             {
@@ -86,14 +101,16 @@ namespace Vpassbackend.Controllers
                 LastName = dto.LastName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                UserRoleId = dto.UserRoleId // Use UserRoleId from DTO
+                UserRoleId = dto.UserRoleId, // Use UserRoleId from DTO
+                Station_id = dto.Station_id // Assign to specific service center if provided
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             // Log the user creation with role information
-            Console.WriteLine($"User created: {user.Email} with UserRoleId: {user.UserRoleId} ({userRole.UserRoleName})");
+            Console.WriteLine($"User created: {user.Email} with UserRoleId: {user.UserRoleId} ({userRole.UserRoleName})" + 
+                (user.Station_id.HasValue ? $" assigned to Station_id: {user.Station_id}" : ""));
 
             return Ok(new
             {
@@ -101,7 +118,8 @@ namespace Vpassbackend.Controllers
                 userId = user.UserId,
                 email = user.Email,
                 userRoleId = user.UserRoleId,
-                userRoleName = userRole.UserRoleName
+                userRoleName = userRole.UserRoleName,
+                station_id = user.Station_id
             });
         }
 
@@ -193,6 +211,205 @@ namespace Vpassbackend.Controllers
 
             return Ok("OTP resent successfully.");
         }
+
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            // Generate random 6-digit OTP for password reset
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            string firstName = "";
+            string userType = "";
+
+            if (customer != null)
+            {
+                customer.ForgotPasswordOtp = otp;
+                customer.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = customer.FirstName;
+                userType = "Customer";
+            }
+            else if (user != null)
+            {
+                user.ForgotPasswordOtp = otp;
+                user.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = user.FirstName;
+                userType = "Staff";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send password reset OTP email
+            await _emailService.SendEmailAsync(
+                dto.Email,
+                "Password Reset Request",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #333;'>Password Reset Request</h2>
+                    <p>Hello {firstName},</p>
+                    <p>We received a request to reset your password for your {userType} account. Use the following OTP to reset your password:</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;'>
+                        <h1 style='color: #007bff; margin: 0; font-size: 32px;'>{otp}</h1>
+                    </div>
+                    <p><strong>This OTP will expire in 10 minutes.</strong></p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <p>Best regards,<br>Vehicle Service Team</p>
+                </div>"
+            );
+
+            return Ok("Password reset OTP sent to your email address.");
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            if (customer != null)
+            {
+                if (customer.ForgotPasswordOtp != dto.Otp)
+                    return BadRequest("Invalid OTP.");
+
+                if (customer.ForgotPasswordOtpExpiry < DateTime.UtcNow)
+                    return BadRequest("OTP has expired.");
+
+                // Update password
+                customer.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+                
+                // Clear the forgot password OTP fields
+                customer.ForgotPasswordOtp = null;
+                customer.ForgotPasswordOtpExpiry = null;
+            }
+            else if (user != null)
+            {
+                if (user.ForgotPasswordOtp != dto.Otp)
+                    return BadRequest("Invalid OTP.");
+
+                if (user.ForgotPasswordOtpExpiry < DateTime.UtcNow)
+                    return BadRequest("OTP has expired.");
+
+                // Update password
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+                
+                // Clear the forgot password OTP fields
+                user.ForgotPasswordOtp = null;
+                user.ForgotPasswordOtpExpiry = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Password reset successfully. You can now login with your new password.");
+        }
+
+        [HttpPost("resend-forgot-password-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResendForgotPasswordOtp([FromBody] string email)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            // Generate new OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            string firstName = "";
+            string userType = "";
+
+            if (customer != null)
+            {
+                customer.ForgotPasswordOtp = otp;
+                customer.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = customer.FirstName;
+                userType = "Customer";
+            }
+            else if (user != null)
+            {
+                user.ForgotPasswordOtp = otp;
+                user.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = user.FirstName;
+                userType = "Staff";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send new password reset OTP email
+            await _emailService.SendEmailAsync(
+                email,
+                "New Password Reset OTP",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #333;'>New Password Reset OTP</h2>
+                    <p>Hello {firstName},</p>
+                    <p>Here's your new password reset OTP for your {userType} account:</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;'>
+                        <h1 style='color: #007bff; margin: 0; font-size: 32px;'>{otp}</h1>
+                    </div>
+                    <p><strong>This OTP will expire in 10 minutes.</strong></p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <p>Best regards,<br>Vehicle Service Team</p>
+                </div>"
+            );
+
+            return Ok("New password reset OTP sent to your email address.");
+        }
+
+        [Authorize]
+[HttpPost("change-password")]
+public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+{
+    // Find the customer
+    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == dto.CustomerId);
+    if (customer == null)
+        return NotFound("Customer not found.");
+
+    // Verify old password
+    if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, customer.Password))
+        return BadRequest("Old password is incorrect.");
+
+    // Optionally: check new password strength here
+
+    // Hash and set new password
+    customer.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Password changed successfully." });
+}
+[Authorize]
+[HttpPost("delete-account")]
+public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
+{
+    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == dto.CustomerId);
+    if (customer == null)
+        return NotFound("Customer not found.");
+
+    if (!BCrypt.Net.BCrypt.Verify(dto.Password, customer.Password))
+        return BadRequest("Password is incorrect.");
+
+    _context.Customers.Remove(customer);
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Account deleted successfully." });
+}
+
 
         [HttpPut("update-customer-details")]
         public async Task<IActionResult> UpdateCustomerDetails([FromBody] CustomerUpdateDto dto)

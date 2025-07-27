@@ -43,6 +43,8 @@ namespace Vpassbackend.Migrations
                     IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
                     OtpCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     OtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ForgotPasswordOtp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ForgotPasswordOtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeviceToken = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     LastTokenUpdate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Platform = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -270,11 +272,19 @@ namespace Vpassbackend.Migrations
                     LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserRoleId = table.Column<int>(type: "int", nullable: false)
+                    UserRoleId = table.Column<int>(type: "int", nullable: false),
+                    Station_id = table.Column<int>(type: "int", nullable: true),
+                    ForgotPasswordOtp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ForgotPasswordOtpExpiry = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Users_ServiceCenters_Station_id",
+                        column: x => x.Station_id,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
                     table.ForeignKey(
                         name: "FK_Users_UserRoles_UserRoleId",
                         column: x => x.UserRoleId,
@@ -756,6 +766,11 @@ namespace Vpassbackend.Migrations
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Users_Station_id",
+                table: "Users",
+                column: "Station_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_UserRoleId",
                 table: "Users",
                 column: "UserRoleId");
@@ -842,13 +857,13 @@ namespace Vpassbackend.Migrations
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "ServiceCenters");
-
-            migrationBuilder.DropTable(
                 name: "Services");
 
             migrationBuilder.DropTable(
                 name: "Vehicles");
+
+            migrationBuilder.DropTable(
+                name: "ServiceCenters");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");

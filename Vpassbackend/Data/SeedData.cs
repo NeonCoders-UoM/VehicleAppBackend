@@ -35,6 +35,47 @@ namespace Vpassbackend.Data
     await context.Database.CloseConnectionAsync();
 }
 
+            // Add sample service centers if none exist (MUST be before Users to avoid FK constraint issues)
+            if (!context.ServiceCenters.Any())
+            {
+                context.ServiceCenters.AddRange(
+                    new ServiceCenter
+                    {
+                        OwnerName = "John Smith",
+                        VATNumber = "VAT123456",
+                        RegisterationNumber = "REG001",
+                        Station_name = "City Center Auto Services",
+                        Email = "city.center@example.com",
+                        Telephone = "123-456-7890",
+                        Address = "123 Main St, City Center",
+                        Station_status = "Active"
+                    },
+                    new ServiceCenter
+                    {
+                        OwnerName = "Alice Johnson",
+                        VATNumber = "VAT789012",
+                        RegisterationNumber = "REG002",
+                        Station_name = "West Side Vehicle Repairs",
+                        Email = "westside@example.com",
+                        Telephone = "987-654-3210",
+                        Address = "456 West Ave, Westside",
+                        Station_status = "Active"
+                    },
+                    new ServiceCenter
+                    {
+                        OwnerName = "Robert Davis",
+                        VATNumber = "VAT345678",
+                        RegisterationNumber = "REG003",
+                        Station_name = "Highway Auto Center",
+                        Email = "highway@example.com",
+                        Telephone = "555-123-4567",
+                        Address = "789 Highway Blvd, North District",
+                        Station_status = "Inactive"
+                    }
+                );
+                await context.SaveChangesAsync();
+            }
+
             if (!context.Users.Any())
             {
                 // Get the SuperAdmin role to ensure we're using the correct UserRoleId
@@ -91,7 +132,8 @@ namespace Vpassbackend.Data
                         LastName = "Manager",
                         Email = "serviceadmin@example.com",
                         UserRoleId = serviceCenterAdminRole.UserRoleId,
-                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123")
+                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123"),
+                        Station_id = 1 // Assign to first service center (Station_id = 1)
                     };
                     context.Users.Add(serviceCenterAdmin);
                 }
@@ -148,46 +190,7 @@ namespace Vpassbackend.Data
                 }
             }
 
-            // Add sample service centers if none exist
-            if (!context.ServiceCenters.Any())
-            {
-                context.ServiceCenters.AddRange(
-                    new ServiceCenter
-                    {
-                        OwnerName = "John Smith",
-                        VATNumber = "VAT123456",
-                        RegisterationNumber = "REG001",
-                        Station_name = "City Center Auto Services",
-                        Email = "city.center@example.com",
-                        Telephone = "123-456-7890",
-                        Address = "123 Main St, City Center",
-                        Station_status = "Active"
-                    },
-                    new ServiceCenter
-                    {
-                        OwnerName = "Alice Johnson",
-                        VATNumber = "VAT789012",
-                        RegisterationNumber = "REG002",
-                        Station_name = "West Side Vehicle Repairs",
-                        Email = "westside@example.com",
-                        Telephone = "987-654-3210",
-                        Address = "456 West Ave, Westside",
-                        Station_status = "Active"
-                    },
-                    new ServiceCenter
-                    {
-                        OwnerName = "Robert Davis",
-                        VATNumber = "VAT345678",
-                        RegisterationNumber = "REG003",
-                        Station_name = "Highway Auto Center",
-                        Email = "highway@example.com",
-                        Telephone = "555-123-4567",
-                        Address = "789 Highway Blvd, North District",
-                        Station_status = "Inactive"
-                    }
-                );
-                await context.SaveChangesAsync();
-            }
+
 
             // Add sample services if none exist
             if (!context.Services.Any())

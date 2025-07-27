@@ -412,5 +412,56 @@ namespace Vpassbackend.Controllers
         {
             return _context.VehicleServiceHistories.Any(e => e.ServiceHistoryId == serviceHistoryId && e.VehicleId == vehicleId);
         }
+
+        [HttpPost("search")]
+        public async Task<ActionResult<PaginatedResult<CustomerVehicleDTO>>> SearchVehicles([FromBody] SearchDTO filter)
+        {
+            var query = _context.Vehicles.Include(v => v.Customer).AsQueryable();
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                query = query.Where(v =>
+                    v.Brand.ToLower().Contains(term) ||
+                    v.Model.ToLower().Contains(term) ||
+                    v.Customer.FirstName.ToLower().Contains(term) ||
+                    v.Customer.LastName.ToLower().Contains(term));
+            }
+
+            // Example filter on status - e.g. active/inactive
+            if (!string.IsNullOrEmpty(filter.Status))
+            {
+                // Assuming there's an `IsActive` property on Vehicle or Customer
+                if (filter.Status == "Active")
+                    query = query.Where(v => v.Year.HasValue && v.Year.Value >= DateTime.Now.Year - 10);
+                else
+                    query = query.Where(v => !v.Year.HasValue || v.Year.Value < DateTime.Now.Year - 10);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(v => v.VehicleId)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(v => new CustomerVehicleDTO
+                {
+                    VehicleId = v.VehicleId,
+                    CustomerId = v.CustomerId,
+                    Client = v.Customer.FirstName + " " + v.Customer.LastName,
+                    Brand = v.Brand,
+                    Model = v.Model,
+                    Fuel = v.Fuel,
+                    Year = v.Year,
+                    RegistrationNumber = v.RegistrationNumber
+                })
+                .ToListAsync();
+
+            return Ok(new PaginatedResult<CustomerVehicleDTO>
+            {
+                Data = items,
+                TotalCount = totalCount
+            });
+        }
     }
 }

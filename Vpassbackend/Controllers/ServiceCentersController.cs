@@ -535,7 +535,7 @@ namespace Vpassbackend.Controllers
 
         // POST endpoint to support search and filtering of service centers
         [HttpPost("search")]
-        public async Task<ActionResult<PaginatedResult<ServiceCenterDTO>>> SearchServiceCenters([FromBody] ServiceCenterSearchDTO filter)
+        public async Task<ActionResult<PaginatedResult<ServiceCenterDTO>>> SearchServiceCenters([FromBody] SearchDTO filter)
         {
             var query = _context.ServiceCenters.AsQueryable();
 

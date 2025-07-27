@@ -1,6 +1,6 @@
 ﻿namespace Vpassbackend.DTOs
 {
-    public class ServiceCenterSearchDTO
+    public class SearchDTO
     {
         public string? SearchTerm { get; set; } // General keyword search (name, email, etc.)
         public string? Status { get; set; }     // "active", "inactive"

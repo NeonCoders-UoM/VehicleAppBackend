@@ -30,6 +30,7 @@ namespace Vpassbackend.Data
         public DbSet<FuelEfficiency> FuelEfficiencies { get; set; }
         public DbSet<ClosureSchedule> ClosureSchedules { get; set; }
         public DbSet<ServiceAvailability> ServiceAvailabilities { get; set; }
+        public DbSet<ServiceCenterDailyLimit> ServiceCenterDailyLimits { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
 
@@ -165,7 +166,7 @@ namespace Vpassbackend.Data
                 .HasOne(n => n.ServiceReminder)
                 .WithMany()
                 .HasForeignKey(n => n.ServiceReminderId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.Vehicle)

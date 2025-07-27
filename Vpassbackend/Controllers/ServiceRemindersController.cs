@@ -169,7 +169,7 @@ namespace Vpassbackend.Controllers
             var serviceReminder = new ServiceReminder
             {
                 VehicleId = createDto.VehicleId,
-                ServiceId = 1, // Using a default service ID - you may need to adjust this
+                ServiceId = createDto.ServiceId, // Using a default service ID - you may need to adjust this
                 ReminderDate = createDto.ReminderDate,
                 IntervalMonths = createDto.IntervalMonths,
                 NotifyBeforeDays = createDto.NotifyBeforeDays,

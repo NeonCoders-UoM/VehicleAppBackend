@@ -57,7 +57,10 @@ namespace Vpassbackend.Controllers
                     Email = sc.Email,
                     Telephone = sc.Telephone,
                     Address = sc.Address,
-                    Station_status = sc.Station_status
+                    Station_status = sc.Station_status,
+                    Latitude = sc.Latitude,
+                    Longitude = sc.Longitude,
+                    DefaultDailyAppointmentLimit = sc.DefaultDailyAppointmentLimit
                 })
                 .ToListAsync();
 
@@ -85,7 +88,10 @@ namespace Vpassbackend.Controllers
                 Email = serviceCenter.Email,
                 Telephone = serviceCenter.Telephone,
                 Address = serviceCenter.Address,
-                Station_status = serviceCenter.Station_status
+                Station_status = serviceCenter.Station_status,
+                Latitude = serviceCenter.Latitude,
+                Longitude = serviceCenter.Longitude,
+                DefaultDailyAppointmentLimit = serviceCenter.DefaultDailyAppointmentLimit
             };
 
             return serviceCenterDTO;
@@ -107,7 +113,10 @@ namespace Vpassbackend.Controllers
                     Email = sc.Email,
                     Telephone = sc.Telephone,
                     Address = sc.Address,
-                    Station_status = sc.Station_status
+                    Station_status = sc.Station_status,
+                    Latitude = sc.Latitude,
+                    Longitude = sc.Longitude,
+                    DefaultDailyAppointmentLimit = sc.DefaultDailyAppointmentLimit
                 })
                 .ToListAsync();
 
@@ -130,10 +139,28 @@ namespace Vpassbackend.Controllers
                 Address = createServiceCenterDTO.Address,
                 Station_status = createServiceCenterDTO.Station_status,
                 Latitude = createServiceCenterDTO.Latitude,    // Added Latitude
-                Longitude = createServiceCenterDTO.Longitude   // Added Longitude
+                Longitude = createServiceCenterDTO.Longitude,  // Added Longitude
+                DefaultDailyAppointmentLimit = createServiceCenterDTO.DefaultDailyAppointmentLimit
             };
 
             _context.ServiceCenters.Add(serviceCenter);
+            await _context.SaveChangesAsync();
+
+            // Add default daily limits for the next 30 days using configurable limit
+            var maxAppointments = createServiceCenterDTO.DefaultDailyAppointmentLimit;
+            var startDate = DateOnly.FromDateTime(DateTime.Today);
+            
+            for (int i = 0; i < 30; i++)
+            {
+                var dailyLimit = new ServiceCenterDailyLimit
+                {
+                    Station_id = serviceCenter.Station_id,
+                    Date = startDate.AddDays(i),
+                    MaxAppointments = maxAppointments,
+                    CurrentAppointments = 0
+                };
+                _context.ServiceCenterDailyLimits.Add(dailyLimit);
+            }
             await _context.SaveChangesAsync();
 
             var serviceCenterDTO = new ServiceCenterDTO
@@ -148,7 +175,8 @@ namespace Vpassbackend.Controllers
                 Address = serviceCenter.Address,
                 Station_status = serviceCenter.Station_status,
                 Latitude = serviceCenter.Latitude,             // Added Latitude
-                Longitude = serviceCenter.Longitude            // Added Longitude
+                Longitude = serviceCenter.Longitude,           // Added Longitude
+                DefaultDailyAppointmentLimit = serviceCenter.DefaultDailyAppointmentLimit
             };
 
             return CreatedAtAction(nameof(GetServiceCenter), new { id = serviceCenter.Station_id }, serviceCenterDTO);
@@ -484,44 +512,15 @@ namespace Vpassbackend.Controllers
 
         // GET: api/servicecenters/nearby?lat={latitude}&lng={longitude}
         [HttpGet("nearby")]
-        public async Task<ActionResult<IEnumerable<ServiceCenterDTO>>> GetNearbyServiceCenters(
-    double lat,
-    double lng,
-    [FromQuery] List<int> serviceIds
-)
+        public async Task<ActionResult<IEnumerable<ServiceCenterSearchResultDTO>>> GetNearbyServiceCenters(
+            double lat,
+            double lng,
+            [FromQuery] List<int> serviceIds,
+            [FromQuery] DateTime appointmentDate)
         {
-            var serviceCenters = await _context.ServiceCenters
-                .Where(sc =>
-                    sc.Station_status != null &&
-                    sc.Station_status.ToLower() == "active" &&
-                    _context.ServiceCenterServices
-                        .Where(scs => scs.Station_id == sc.Station_id)
-                        .Select(scs => scs.ServiceId)
-                        .Distinct()
-                        .Intersect(serviceIds)
-                        .Count() == serviceIds.Count
-                )
-                .Select(sc => new ServiceCenterDTO
-                {
-                    Station_id = sc.Station_id,
-                    OwnerName = sc.OwnerName,
-                    VATNumber = sc.VATNumber,
-                    RegisterationNumber = sc.RegisterationNumber,
-                    Station_name = sc.Station_name,
-                    Email = sc.Email,
-                    Telephone = sc.Telephone,
-                    Address = sc.Address,
-                    Station_status = sc.Station_status,
-                    Latitude = sc.Latitude,
-                    Longitude = sc.Longitude
-                })
-                .ToListAsync();
-
-            var nearbyCenters = serviceCenters
-                .Where(sc => CalculateDistance(lat, lng, sc.Latitude, sc.Longitude) <= 20)
-                .ToList();
-
-            return Ok(nearbyCenters);
+            var searchService = new ServiceCenterSearchService(_context);
+            var results = await searchService.GetAvailableServiceCentersAsync(lat, lng, serviceIds, appointmentDate);
+            return Ok(results);
         }
 
 

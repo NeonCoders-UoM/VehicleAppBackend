@@ -38,6 +38,8 @@ namespace Vpassbackend.Models
 
         public double Longitude { get; set; }
 
+        public int DefaultDailyAppointmentLimit { get; set; } = 20; // Default appointment limit per day
+
         // Navigation properties
         public ICollection<ServiceCenterCheckInPoint> CheckInPoints { get; set; } = new List<ServiceCenterCheckInPoint>();
         public ICollection<User> Users { get; set; } = new List<User>();

@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250722102707_AddServiceCenterSlotsAndSlotsProperty")]
-    partial class AddServiceCenterSlotsAndSlotsProperty
+    [Migration("20250727061608_InitailCreate")]
+    partial class InitailCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -613,6 +613,9 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("DefaultDailyAppointmentLimit")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -648,9 +651,6 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
-                    b.Property<int>("slots")
-                        .HasColumnType("int");
-
                     b.HasKey("Station_id");
 
                     b.ToTable("ServiceCenters");
@@ -676,6 +676,33 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("Station_id");
 
                     b.ToTable("ServiceCenterCheckInPoints");
+                });
+
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterDailyLimit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CurrentAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("MaxAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Station_id")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Station_id");
+
+                    b.ToTable("ServiceCenterDailyLimits");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenterService", b =>
@@ -721,30 +748,6 @@ namespace Vpassbackend.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceCenterServices");
-                });
-
-            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("Station_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UsedSlots")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Station_id");
-
-                    b.ToTable("ServiceCenterSlots");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
@@ -1092,7 +1095,7 @@ namespace Vpassbackend.Migrations
                     b.HasOne("Vpassbackend.Models.ServiceReminder", "ServiceReminder")
                         .WithMany()
                         .HasForeignKey("ServiceReminderId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
                         .WithMany()
@@ -1130,6 +1133,17 @@ namespace Vpassbackend.Migrations
                     b.Navigation("ServiceCenter");
                 });
 
+            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterDailyLimit", b =>
+                {
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany()
+                        .HasForeignKey("Station_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceCenter");
+                });
+
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenterService", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Package", "Package")
@@ -1152,17 +1166,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Package");
 
                     b.Navigation("Service");
-
-                    b.Navigation("ServiceCenter");
-                });
-
-            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
-                {
-                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
-                        .WithMany("DailySlots")
-                        .HasForeignKey("Station_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("ServiceCenter");
                 });
@@ -1260,8 +1263,6 @@ namespace Vpassbackend.Migrations
             modelBuilder.Entity("Vpassbackend.Models.ServiceCenter", b =>
                 {
                     b.Navigation("CheckInPoints");
-
-                    b.Navigation("DailySlots");
 
                     b.Navigation("ServiceCenterServices");
                 });

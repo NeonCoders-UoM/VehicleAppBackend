@@ -211,6 +211,167 @@ namespace Vpassbackend.Controllers
 
             return Ok("OTP resent successfully.");
         }
+
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            // Generate random 6-digit OTP for password reset
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            string firstName = "";
+            string userType = "";
+
+            if (customer != null)
+            {
+                customer.ForgotPasswordOtp = otp;
+                customer.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = customer.FirstName;
+                userType = "Customer";
+            }
+            else if (user != null)
+            {
+                user.ForgotPasswordOtp = otp;
+                user.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = user.FirstName;
+                userType = "Staff";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send password reset OTP email
+            await _emailService.SendEmailAsync(
+                dto.Email,
+                "Password Reset Request",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #333;'>Password Reset Request</h2>
+                    <p>Hello {firstName},</p>
+                    <p>We received a request to reset your password for your {userType} account. Use the following OTP to reset your password:</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;'>
+                        <h1 style='color: #007bff; margin: 0; font-size: 32px;'>{otp}</h1>
+                    </div>
+                    <p><strong>This OTP will expire in 10 minutes.</strong></p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <p>Best regards,<br>Vehicle Service Team</p>
+                </div>"
+            );
+
+            return Ok("Password reset OTP sent to your email address.");
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == dto.Email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            if (customer != null)
+            {
+                if (customer.ForgotPasswordOtp != dto.Otp)
+                    return BadRequest("Invalid OTP.");
+
+                if (customer.ForgotPasswordOtpExpiry < DateTime.UtcNow)
+                    return BadRequest("OTP has expired.");
+
+                // Update password
+                customer.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+                
+                // Clear the forgot password OTP fields
+                customer.ForgotPasswordOtp = null;
+                customer.ForgotPasswordOtpExpiry = null;
+            }
+            else if (user != null)
+            {
+                if (user.ForgotPasswordOtp != dto.Otp)
+                    return BadRequest("Invalid OTP.");
+
+                if (user.ForgotPasswordOtpExpiry < DateTime.UtcNow)
+                    return BadRequest("OTP has expired.");
+
+                // Update password
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+                
+                // Clear the forgot password OTP fields
+                user.ForgotPasswordOtp = null;
+                user.ForgotPasswordOtpExpiry = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Password reset successfully. You can now login with your new password.");
+        }
+
+        [HttpPost("resend-forgot-password-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResendForgotPasswordOtp([FromBody] string email)
+        {
+            // Check for customer first
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Email == email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (customer == null && user == null)
+                return BadRequest("No account found with this email address.");
+
+            // Generate new OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+
+            string firstName = "";
+            string userType = "";
+
+            if (customer != null)
+            {
+                customer.ForgotPasswordOtp = otp;
+                customer.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = customer.FirstName;
+                userType = "Customer";
+            }
+            else if (user != null)
+            {
+                user.ForgotPasswordOtp = otp;
+                user.ForgotPasswordOtpExpiry = otpExpiry;
+                firstName = user.FirstName;
+                userType = "Staff";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send new password reset OTP email
+            await _emailService.SendEmailAsync(
+                email,
+                "New Password Reset OTP",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #333;'>New Password Reset OTP</h2>
+                    <p>Hello {firstName},</p>
+                    <p>Here's your new password reset OTP for your {userType} account:</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;'>
+                        <h1 style='color: #007bff; margin: 0; font-size: 32px;'>{otp}</h1>
+                    </div>
+                    <p><strong>This OTP will expire in 10 minutes.</strong></p>
+                    <p>If you didn't request this password reset, please ignore this email.</p>
+                    <p>Best regards,<br>Vehicle Service Team</p>
+                </div>"
+            );
+
+            return Ok("New password reset OTP sent to your email address.");
+        }
+
         [Authorize]
 [HttpPost("change-password")]
 public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
@@ -248,6 +409,7 @@ public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
 
     return Ok(new { message = "Account deleted successfully." });
 }
+
 
         [HttpPut("update-customer-details")]
         public async Task<IActionResult> UpdateCustomerDetails([FromBody] CustomerUpdateDto dto)

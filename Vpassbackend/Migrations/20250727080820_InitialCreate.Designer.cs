@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250722114429_AddServiceCenterSlots")]
-    partial class AddServiceCenterSlots
+    [Migration("20250727080820_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -648,9 +648,6 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
-                    b.Property<int>("slots")
-                        .HasColumnType("int");
-
                     b.HasKey("Station_id");
 
                     b.ToTable("ServiceCenters");
@@ -721,30 +718,6 @@ namespace Vpassbackend.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceCenterServices");
-                });
-
-            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("Station_id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UsedSlots")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Station_id");
-
-                    b.ToTable("ServiceCenterSlots");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
@@ -819,10 +792,15 @@ namespace Vpassbackend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("Station_id")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserRoleId")
                         .HasColumnType("int");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("Station_id");
 
                     b.HasIndex("UserRoleId");
 
@@ -1156,17 +1134,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("ServiceCenter");
                 });
 
-            modelBuilder.Entity("Vpassbackend.Models.ServiceCenterSlots", b =>
-                {
-                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
-                        .WithMany("DailySlots")
-                        .HasForeignKey("Station_id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceCenter");
-                });
-
             modelBuilder.Entity("Vpassbackend.Models.ServiceReminder", b =>
                 {
                     b.HasOne("Vpassbackend.Models.Service", "Service")
@@ -1188,11 +1155,17 @@ namespace Vpassbackend.Migrations
 
             modelBuilder.Entity("Vpassbackend.Models.User", b =>
                 {
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany("Users")
+                        .HasForeignKey("Station_id");
+
                     b.HasOne("Vpassbackend.Models.UserRole", "UserRole")
                         .WithMany()
                         .HasForeignKey("UserRoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ServiceCenter");
 
                     b.Navigation("UserRole");
                 });
@@ -1261,9 +1234,9 @@ namespace Vpassbackend.Migrations
                 {
                     b.Navigation("CheckInPoints");
 
-                    b.Navigation("DailySlots");
-
                     b.Navigation("ServiceCenterServices");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Vehicle", b =>

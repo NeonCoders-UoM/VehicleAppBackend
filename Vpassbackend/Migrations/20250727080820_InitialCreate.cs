@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Vpassbackend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitailCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -115,7 +115,10 @@ namespace Vpassbackend.Migrations
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Telephone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    Station_status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
+                    Station_status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Latitude = table.Column<double>(type: "float", nullable: false),
+                    Longitude = table.Column<double>(type: "float", nullable: false),
+                    DefaultDailyAppointmentLimit = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -198,6 +201,28 @@ namespace Vpassbackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ServiceCenterDailyLimits",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Station_id = table.Column<int>(type: "int", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    MaxAppointments = table.Column<int>(type: "int", nullable: false),
+                    CurrentAppointments = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ServiceCenterDailyLimits", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ServiceCenterDailyLimits_ServiceCenters_Station_id",
+                        column: x => x.Station_id,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ServiceCenterServices",
                 columns: table => new
                 {
@@ -245,11 +270,17 @@ namespace Vpassbackend.Migrations
                     LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserRoleId = table.Column<int>(type: "int", nullable: false)
+                    UserRoleId = table.Column<int>(type: "int", nullable: false),
+                    Station_id = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Users_ServiceCenters_Station_id",
+                        column: x => x.Station_id,
+                        principalTable: "ServiceCenters",
+                        principalColumn: "Station_id");
                     table.ForeignKey(
                         name: "FK_Users_UserRoles_UserRoleId",
                         column: x => x.UserRoleId,
@@ -595,7 +626,8 @@ namespace Vpassbackend.Migrations
                         name: "FK_Notifications_ServiceReminders_ServiceReminderId",
                         column: x => x.ServiceReminderId,
                         principalTable: "ServiceReminders",
-                        principalColumn: "ServiceReminderId");
+                        principalColumn: "ServiceReminderId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Notifications_Vehicles_VehicleId",
                         column: x => x.VehicleId,
@@ -699,6 +731,11 @@ namespace Vpassbackend.Migrations
                 column: "Station_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ServiceCenterDailyLimits_Station_id",
+                table: "ServiceCenterDailyLimits",
+                column: "Station_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ServiceCenterServices_PackageId",
                 table: "ServiceCenterServices",
                 column: "PackageId");
@@ -723,6 +760,11 @@ namespace Vpassbackend.Migrations
                 name: "IX_ServiceReminders_VehicleId",
                 table: "ServiceReminders",
                 column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Station_id",
+                table: "Users",
+                column: "Station_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_UserRoleId",
@@ -787,6 +829,9 @@ namespace Vpassbackend.Migrations
                 name: "ServiceCenterCheckInPoints");
 
             migrationBuilder.DropTable(
+                name: "ServiceCenterDailyLimits");
+
+            migrationBuilder.DropTable(
                 name: "ServiceCenterServices");
 
             migrationBuilder.DropTable(
@@ -808,13 +853,13 @@ namespace Vpassbackend.Migrations
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "ServiceCenters");
-
-            migrationBuilder.DropTable(
                 name: "Services");
 
             migrationBuilder.DropTable(
                 name: "Vehicles");
+
+            migrationBuilder.DropTable(
+                name: "ServiceCenters");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");

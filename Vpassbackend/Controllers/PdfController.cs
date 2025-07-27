@@ -39,6 +39,24 @@ namespace Vpassbackend.Controllers
                     return NotFound(new { message = "Vehicle not found" });
                 }
 
+                // Check payment status for this vehicle's latest invoice
+                var invoice = await _context.Invoices
+                    .Where(i => i.VehicleId == vehicleId)
+                    .OrderByDescending(i => i.InvoiceDate)
+                    .FirstOrDefaultAsync();
+                if (invoice == null)
+                {
+                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to download the PDF." });
+                }
+                var paymentLog = await _context.PaymentLogs
+                    .Where(p => p.InvoiceId == invoice.InvoiceId)
+                    .OrderByDescending(p => p.LogId)
+                    .FirstOrDefaultAsync();
+                if (paymentLog == null || paymentLog.Status != "Paid")
+                {
+                    return StatusCode(403, new { message = "Payment required. Please complete payment to download the PDF." });
+                }
+
                 // Get service history for the vehicle
                 var serviceHistory = await _context.VehicleServiceHistories
                     .Include(vh => vh.ServiceCenter)
@@ -97,6 +115,24 @@ namespace Vpassbackend.Controllers
                     return NotFound(new { message = "Vehicle not found" });
                 }
 
+                // Check payment status for this vehicle's latest invoice
+                var invoice = await _context.Invoices
+                    .Where(i => i.VehicleId == vehicleId)
+                    .OrderByDescending(i => i.InvoiceDate)
+                    .FirstOrDefaultAsync();
+                if (invoice == null)
+                {
+                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to download the PDF." });
+                }
+                var paymentLog = await _context.PaymentLogs
+                    .Where(p => p.InvoiceId == invoice.InvoiceId)
+                    .OrderByDescending(p => p.LogId)
+                    .FirstOrDefaultAsync();
+                if (paymentLog == null || paymentLog.Status != "Paid")
+                {
+                    return StatusCode(403, new { message = "Payment required. Please complete payment to download the PDF." });
+                }
+
                 // Get service history for the vehicle
                 var serviceHistory = await _context.VehicleServiceHistories
                     .Include(vh => vh.ServiceCenter)
@@ -153,6 +189,24 @@ namespace Vpassbackend.Controllers
                 if (vehicle == null)
                 {
                     return NotFound(new { message = "Vehicle not found" });
+                }
+
+                // Check payment status for this vehicle's latest invoice
+                var invoice = await _context.Invoices
+                    .Where(i => i.VehicleId == vehicleId)
+                    .OrderByDescending(i => i.InvoiceDate)
+                    .FirstOrDefaultAsync();
+                if (invoice == null)
+                {
+                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to preview the PDF." });
+                }
+                var paymentLog = await _context.PaymentLogs
+                    .Where(p => p.InvoiceId == invoice.InvoiceId)
+                    .OrderByDescending(p => p.LogId)
+                    .FirstOrDefaultAsync();
+                if (paymentLog == null || paymentLog.Status != "Paid")
+                {
+                    return StatusCode(403, new { message = "Payment required. Please complete payment to preview the PDF." });
                 }
 
                 // Get service history for the vehicle

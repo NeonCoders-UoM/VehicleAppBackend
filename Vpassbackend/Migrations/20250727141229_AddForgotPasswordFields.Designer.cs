@@ -12,8 +12,8 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250721171803_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250727141229_AddForgotPasswordFields")]
+    partial class AddForgotPasswordFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -171,6 +171,12 @@ namespace Vpassbackend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ForgotPasswordOtp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ForgotPasswordOtpExpiry")
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("bit");
@@ -783,6 +789,12 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ForgotPasswordOtp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ForgotPasswordOtpExpiry")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -792,10 +804,15 @@ namespace Vpassbackend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("Station_id")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserRoleId")
                         .HasColumnType("int");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("Station_id");
 
                     b.HasIndex("UserRoleId");
 
@@ -1150,11 +1167,17 @@ namespace Vpassbackend.Migrations
 
             modelBuilder.Entity("Vpassbackend.Models.User", b =>
                 {
+                    b.HasOne("Vpassbackend.Models.ServiceCenter", "ServiceCenter")
+                        .WithMany("Users")
+                        .HasForeignKey("Station_id");
+
                     b.HasOne("Vpassbackend.Models.UserRole", "UserRole")
                         .WithMany()
                         .HasForeignKey("UserRoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ServiceCenter");
 
                     b.Navigation("UserRole");
                 });
@@ -1224,6 +1247,8 @@ namespace Vpassbackend.Migrations
                     b.Navigation("CheckInPoints");
 
                     b.Navigation("ServiceCenterServices");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Vehicle", b =>

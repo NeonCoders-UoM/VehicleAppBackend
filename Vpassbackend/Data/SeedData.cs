@@ -132,7 +132,8 @@ namespace Vpassbackend.Data
                         LastName = "Manager",
                         Email = "serviceadmin@example.com",
                         UserRoleId = serviceCenterAdminRole.UserRoleId,
-                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123")
+                        Password = BCrypt.Net.BCrypt.HashPassword("ServiceAdmin@123"),
+                        Station_id = 1 // Assign to first service center (Station_id = 1)
                     };
                     context.Users.Add(serviceCenterAdmin);
                 }

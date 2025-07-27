@@ -26,10 +26,27 @@ namespace Vpassbackend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ServiceCenterServiceDTO>>> GetServiceCenterServices()
         {
-            var serviceCenterServices = await _context.ServiceCenterServices
+            // Get user role and ID from JWT token
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            IQueryable<ServiceCenterService> query = _context.ServiceCenterServices
                 .Include(scs => scs.Service)
                 .Include(scs => scs.ServiceCenter)
-                .Include(scs => scs.Package)
+                .Include(scs => scs.Package);
+            
+            // If ServiceCenterAdmin, only show their assigned service center
+            if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userIdClaim))
+            {
+                var userId = int.Parse(userIdClaim);
+                var user = await _context.Users.FindAsync(userId);
+                if (user?.Station_id != null)
+                {
+                    query = query.Where(scs => scs.Station_id == user.Station_id);
+                }
+            }
+            
+            var serviceCenterServices = await query
                 .Select(scs => new ServiceCenterServiceDTO
                 {
                     ServiceCenterServiceId = scs.ServiceCenterServiceId,

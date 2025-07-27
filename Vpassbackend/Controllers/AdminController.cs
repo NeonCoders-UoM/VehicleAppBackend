@@ -109,5 +109,45 @@ namespace Vpassbackend.Controllers
             return Ok(user);
         }
 
+        [HttpPost("search")]
+        public async Task<ActionResult<PaginatedResult<UserDto>>> SearchUsers([FromBody] UserSearchDTO filter)
+        {
+            var q = _context.Users.Include(u => u.UserRole).AsQueryable();
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                q = q.Where(u =>
+                    u.FirstName.ToLower().Contains(term) ||
+                    u.LastName.ToLower().Contains(term) ||
+                    u.Email.ToLower().Contains(term) ||
+                    u.UserRole.UserRoleName.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrEmpty(filter.Role) && filter.Role != "All Users")
+            {
+                q = q.Where(u => u.UserRole.UserRoleName == filter.Role);
+            }
+
+            var total = await q.CountAsync();
+
+            var items = await q
+                .OrderBy(u => u.UserId)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(u => new UserDto
+                {
+                    UserId = u.UserId,
+                    Email = u.Email,
+                    Role = u.UserRole.UserRoleName
+                })
+                .ToListAsync();
+
+            return Ok(new PaginatedResult<UserDto>
+            {
+                Data = items,
+                TotalCount = total
+            });
+        }
     }
 }

@@ -220,5 +220,54 @@ namespace Vpassbackend.Controllers
             await _context.SaveChangesAsync();
             return Ok("Vehicle deleted successfully.");
         }
+
+        // POST: api/Customers/search
+        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchCustomers([FromBody] SearchDTO filter)
+        {
+            var query = _context.Customers.AsQueryable();
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.ToLower();
+                query = query.Where(c =>
+                    c.FirstName.ToLower().Contains(term) ||
+                    c.LastName.ToLower().Contains(term) ||
+                    c.Email.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrEmpty(filter.Status))
+            {
+                query = filter.Status == "Active"
+                    ? query.Where(c => c.IsEmailVerified)
+                    : query.Where(c => !c.IsEmailVerified);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var data = await query
+                .OrderByDescending(c => c.CustomerId)
+                .Skip((filter.PageNumber - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(c => new CustomerListItemDTO
+                {
+                    CustomerId = c.CustomerId,
+                    FirstName = c.FirstName,
+                    LastName = c.LastName,
+                    Email = c.Email,
+                    PhoneNumber = c.PhoneNumber,
+                    Address = c.Address,
+                    LoyaltyPoints = c.LoyaltyPoints,
+                    NIC = c.NIC
+                })
+                .ToListAsync();
+
+            return Ok(new PaginatedResult<CustomerListItemDTO>
+            {
+                Data = data,
+                TotalCount = totalCount
+            });
+        }
     }
 }

@@ -9,11 +9,15 @@ namespace Vpassbackend.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly DailyLimitService _dailyLimitService;
+        private readonly INotificationService _notificationService;
+        private readonly ILogger<AppointmentService> _logger;
         
-        public AppointmentService(ApplicationDbContext db, DailyLimitService dailyLimitService)
+        public AppointmentService(ApplicationDbContext db, DailyLimitService dailyLimitService, INotificationService notificationService, ILogger<AppointmentService> logger)
         {
             _db = db;
             _dailyLimitService = dailyLimitService;
+            _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<AppointmentSummaryForCustomerDTO> CreateAppointmentAsync(AppointmentCreateDTO dto)
@@ -338,6 +342,45 @@ namespace Vpassbackend.Services
                 confirmedAppointments,
                 paymentPendingAppointments,
                 duplicateGroups = duplicateCount
+            };
+        }
+
+        public async Task<object> CompleteAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.ServiceCenter)
+                .Include(a => a.Vehicle)
+                .Include(a => a.Customer)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found.");
+
+            if (appointment.Status == "Completed")
+                throw new InvalidOperationException("Appointment is already completed.");
+
+            appointment.Status = "Completed";
+            await _db.SaveChangesAsync();
+
+            // Send notification to customer about appointment completion
+            try
+            {
+                var message = $"Your appointment for {appointment.Vehicle?.RegistrationNumber} at {appointment.ServiceCenter?.Station_name} has been completed successfully. Thank you for choosing our service!";
+                await _notificationService.CreateAppointmentNotificationAsync(appointment, message);
+                _logger.LogInformation("Successfully sent completion notification for appointment {AppointmentId} to customer {CustomerId}", appointmentId, appointment.CustomerId);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail the appointment completion
+                _logger.LogError(ex, "Error sending completion notification for appointment {AppointmentId}", appointmentId);
+            }
+
+            return new
+            {
+                message = "Appointment completed successfully.",
+                appointmentId = appointment.AppointmentId,
+                status = appointment.Status,
+                completedAt = DateTime.UtcNow
             };
         }
     }

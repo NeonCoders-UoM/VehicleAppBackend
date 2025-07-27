@@ -159,5 +159,28 @@ namespace Vpassbackend.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        // Complete an appointment
+        [HttpPost("{appointmentId}/complete")]
+        public async Task<IActionResult> CompleteAppointment(int appointmentId)
+        {
+            try
+            {
+                var result = await _service.CompleteAppointmentAsync(appointmentId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException invEx)
+            {
+                return BadRequest(new { message = invEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while completing the appointment", error = ex.Message });
+            }
+        }
     }
 }

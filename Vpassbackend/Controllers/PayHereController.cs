@@ -21,9 +21,9 @@ namespace Vpassbackend.Controllers
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
         private const string MerchantId = "1230582"; // TODO: Move to config
         private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://c8546ee5249f.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
-        private const string ReturnUrl = "http://localhost:8080/payment-success"; // TODO: Replace with your frontend return URL
-        private const string CancelUrl = "http://localhost:8080/payment-cancel"; // TODO: Replace with your frontend cancel URL
+        private const string NotifyUrl = "https://43179df08648.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string ReturnUrl = "http://localhost:8081/payment-success"; // TODO: Replace with your frontend return URL
+        private const string CancelUrl = "http://localhost:8081/payment-cancel"; // TODO: Replace with your frontend cancel URL
 
         private readonly AppointmentPaymentService _appointmentPaymentService;
 
@@ -76,7 +76,7 @@ namespace Vpassbackend.Controllers
 
                 paymentAmount = request.Amount.Value;
                 orderId = $"appointment_{request.AppointmentId}_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-                returnUrl = $"http://localhost:8080/payment_success.html?appointmentId={request.AppointmentId}&order_id={orderId}";
+                returnUrl = $"http://localhost:8081/payment_success.html?appointmentId={request.AppointmentId}&order_id={orderId}";
                 items = "Appointment Advance Payment";
 
                 // Store PaymentLog as pending for appointment payments too
@@ -111,7 +111,7 @@ namespace Vpassbackend.Controllers
                 await _context.SaveChangesAsync();
 
                 orderId = $"invoice_{invoice.InvoiceId}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-                returnUrl = $"http://localhost:8080/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
+                returnUrl = $"http://localhost:8081/service-history?vehicleId={request.VehicleId}&order_id={orderId}";
 
                 // Store PaymentLog as pending (only for PDF payments)
                 var paymentLog = new PaymentLog

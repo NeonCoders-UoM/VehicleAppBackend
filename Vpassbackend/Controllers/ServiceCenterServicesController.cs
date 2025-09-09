@@ -29,12 +29,12 @@ namespace Vpassbackend.Controllers
             // Get user role and ID from JWT token
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            
+
             IQueryable<ServiceCenterService> query = _context.ServiceCenterServices
                 .Include(scs => scs.Service)
                 .Include(scs => scs.ServiceCenter)
                 .Include(scs => scs.Package);
-            
+
             // If ServiceCenterAdmin, only show their assigned service center
             if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userIdClaim))
             {
@@ -45,7 +45,7 @@ namespace Vpassbackend.Controllers
                     query = query.Where(scs => scs.Station_id == user.Station_id);
                 }
             }
-            
+
             var serviceCenterServices = await query
                 .Select(scs => new ServiceCenterServiceDTO
                 {
@@ -234,7 +234,7 @@ namespace Vpassbackend.Controllers
 
             // Calculate base price (use custom price if provided, otherwise use service base price)
             decimal basePrice = createDto.ServiceCenterBasePrice ?? createDto.CustomPrice ?? service.BasePrice ?? 0;
-            
+
             // Calculate loyalty points based on package percentage
             int loyaltyPoints = _loyaltyPointsService.CalculateLoyaltyPoints(basePrice, package?.Percentage);
 
@@ -290,7 +290,7 @@ namespace Vpassbackend.Controllers
                 .Include(scs => scs.Service)
                 .Include(scs => scs.Package)
                 .FirstOrDefaultAsync(scs => scs.ServiceCenterServiceId == id);
-                
+
             if (serviceCenterService == null)
             {
                 return NotFound();
@@ -445,11 +445,10 @@ namespace Vpassbackend.Controllers
                 return NotFound("No services found for this service center");
             }
 
-            // Check if the service center is closed on the specified week and day
+            // Check if the service center is closed on the specified date
             bool isClosed = await _context.ClosureSchedules
-                .AnyAsync(cs => cs.ServiceCenterId == dto.ServiceCenterId && 
-                               cs.WeekNumber == dto.WeekNumber && 
-                               cs.Day == dto.Day);
+                .AnyAsync(cs => cs.ServiceCenterId == dto.ServiceCenterId &&
+                               cs.ClosureDate.Date == dto.ClosureDate.Date);
 
             // Update availability based on closure status
             foreach (var service in serviceCenterServices)
@@ -468,12 +467,12 @@ namespace Vpassbackend.Controllers
                 return BadRequest($"Error updating service availability: {ex.Message}");
             }
 
-            return Ok(new { 
+            return Ok(new
+            {
                 message = $"Updated availability for {serviceCenterServices.Count} services",
                 isClosed = isClosed,
                 serviceCenterId = dto.ServiceCenterId,
-                weekNumber = dto.WeekNumber,
-                day = dto.Day
+                closureDate = dto.ClosureDate
             });
         }
 

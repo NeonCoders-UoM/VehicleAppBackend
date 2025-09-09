@@ -21,18 +21,16 @@ namespace Vpassbackend.Controllers
             bool exists = _context.ServiceAvailabilities.Any(sa =>
                 sa.ServiceCenterId == serviceAvailabilityDto.ServiceCenterId &&
                 sa.ServiceId == serviceAvailabilityDto.ServiceId &&
-                sa.WeekNumber == serviceAvailabilityDto.WeekNumber &&
-                sa.Day == serviceAvailabilityDto.Day);
-            
-            if (exists) 
+                sa.Date.Date == serviceAvailabilityDto.Date.Date);
+
+            if (exists)
                 return BadRequest("Duplicate service availability entry.");
 
             var serviceAvailability = new ServiceAvailability
             {
                 ServiceCenterId = serviceAvailabilityDto.ServiceCenterId,
                 ServiceId = serviceAvailabilityDto.ServiceId,
-                WeekNumber = serviceAvailabilityDto.WeekNumber,
-                Day = serviceAvailabilityDto.Day,
+                Date = serviceAvailabilityDto.Date,
                 IsAvailable = serviceAvailabilityDto.IsAvailable
             };
 
@@ -42,25 +40,35 @@ namespace Vpassbackend.Controllers
         }
 
         [HttpGet("{serviceCenterId}")]
-        public IActionResult GetServiceAvailabilities(int serviceCenterId, [FromQuery] int weekNumber)
+        public IActionResult GetServiceAvailabilities(int serviceCenterId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
-            var availabilities = _context.ServiceAvailabilities
-                .Where(sa => sa.ServiceCenterId == serviceCenterId && sa.WeekNumber == weekNumber)
-                .ToList();
+            var query = _context.ServiceAvailabilities
+                .Where(sa => sa.ServiceCenterId == serviceCenterId);
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(sa => sa.Date.Date >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(sa => sa.Date.Date <= endDate.Value.Date);
+            }
+
+            var availabilities = query.ToList();
             return Ok(availabilities);
         }
 
         [HttpGet("{serviceCenterId}/{serviceId}")]
-        public IActionResult GetServiceAvailability(int serviceCenterId, int serviceId, [FromQuery] int weekNumber, [FromQuery] string? day)
+        public IActionResult GetServiceAvailability(int serviceCenterId, int serviceId, [FromQuery] DateTime? date)
         {
             var query = _context.ServiceAvailabilities
-                .Where(sa => sa.ServiceCenterId == serviceCenterId && 
-                           sa.ServiceId == serviceId && 
-                           sa.WeekNumber == weekNumber);
+                .Where(sa => sa.ServiceCenterId == serviceCenterId &&
+                           sa.ServiceId == serviceId);
 
-            if (!string.IsNullOrEmpty(day))
+            if (date.HasValue)
             {
-                query = query.Where(sa => sa.Day == day);
+                query = query.Where(sa => sa.Date.Date == date.Value.Date);
             }
 
             var availabilities = query.ToList();
@@ -81,8 +89,7 @@ namespace Vpassbackend.Controllers
                 sa.Id != id &&
                 sa.ServiceCenterId == updateDto.ServiceCenterId &&
                 sa.ServiceId == updateDto.ServiceId &&
-                sa.WeekNumber == updateDto.WeekNumber &&
-                sa.Day == updateDto.Day);
+                sa.Date.Date == updateDto.Date.Date);
 
             if (duplicateExists)
             {
@@ -91,8 +98,7 @@ namespace Vpassbackend.Controllers
 
             existingAvailability.ServiceCenterId = updateDto.ServiceCenterId;
             existingAvailability.ServiceId = updateDto.ServiceId;
-            existingAvailability.WeekNumber = updateDto.WeekNumber;
-            existingAvailability.Day = updateDto.Day;
+            existingAvailability.Date = updateDto.Date;
             existingAvailability.IsAvailable = updateDto.IsAvailable;
 
             await _context.SaveChangesAsync();
@@ -132,7 +138,7 @@ namespace Vpassbackend.Controllers
 
             _context.ServiceAvailabilities.RemoveRange(availabilities);
             await _context.SaveChangesAsync();
-            
+
             return Ok(new { message = $"{availabilities.Count} service availabilities deleted successfully." });
         }
     }

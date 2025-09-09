@@ -4,8 +4,7 @@ namespace Vpassbackend.DTOs
     {
         public int ServiceCenterId { get; set; }
         public int ServiceId { get; set; }
-        public int WeekNumber { get; set; }
-        public string? Day { get; set; } // e.g., "Monday"
+        public DateTime Date { get; set; } // Specific date for availability
         public bool IsAvailable { get; set; }
     }
 }

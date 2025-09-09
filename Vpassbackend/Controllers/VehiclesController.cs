@@ -55,6 +55,23 @@ namespace Vpassbackend.Controllers
             return Ok(serviceHistoryDTOs);
         }
 
+        [HttpGet("api/Vehicles")]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllVehicles()
+        {
+            var vehicles = await _context.Vehicles
+                .Select(v => new
+                {
+                    VehicleId = v.VehicleId,
+                    CustomerId = v.CustomerId,
+                    Model = v.Model,
+                    ChassisNumber = v.ChassisNumber,
+                    Mileage = v.Mileage
+                })
+                .ToListAsync();
+
+            return Ok(vehicles);
+        }
+
         // GET: api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}
         [HttpGet("api/Vehicles/{vehicleId}/ServiceHistory/{serviceHistoryId}")]
         public async Task<ActionResult<ServiceHistoryDTO>> GetServiceHistory(int vehicleId, int serviceHistoryId)

@@ -15,9 +15,9 @@ namespace Vpassbackend.Services
         }
 
         public async Task<List<ServiceCenterSearchResultDTO>> GetAvailableServiceCentersAsync(
-            double userLat, 
-            double userLng, 
-            List<int> serviceIds, 
+            double userLat,
+            double userLng,
+            List<int> serviceIds,
             DateTime appointmentDate)
         {
             var dateOnly = DateOnly.FromDateTime(appointmentDate);
@@ -26,7 +26,7 @@ namespace Vpassbackend.Services
 
             // Get all service centers that offer the required services
             var serviceCenters = await _context.ServiceCenters
-                .Where(sc => sc.Station_status != null && 
+                .Where(sc => sc.Station_status != null &&
                            sc.Station_status.ToLower() == "active")
                 .ToListAsync();
 
@@ -36,7 +36,7 @@ namespace Vpassbackend.Services
             {
                 // Check if service center offers all required services
                 var offeredServices = await _context.ServiceCenterServices
-                    .Where(scs => scs.Station_id == serviceCenter.Station_id && 
+                    .Where(scs => scs.Station_id == serviceCenter.Station_id &&
                                 serviceIds.Contains(scs.ServiceId))
                     .Include(scs => scs.Service)
                     .ToListAsync();
@@ -46,9 +46,8 @@ namespace Vpassbackend.Services
 
                 // Check if service center is closed on this day
                 var isClosed = await _context.ClosureSchedules
-                    .AnyAsync(cs => cs.ServiceCenterId == serviceCenter.Station_id && 
-                                   cs.WeekNumber == weekNumber && 
-                                   cs.Day == dayOfWeek);
+                    .AnyAsync(cs => cs.ServiceCenterId == serviceCenter.Station_id &&
+                                   cs.ClosureDate.Date == appointmentDate.Date);
 
                 if (isClosed)
                     continue; // Service center is closed on this day
@@ -69,9 +68,8 @@ namespace Vpassbackend.Services
 
                 // Check service availability for this specific day
                 var unavailableServices = await _context.ServiceAvailabilities
-                    .Where(sa => sa.ServiceCenterId == serviceCenter.Station_id && 
-                               sa.WeekNumber == weekNumber && 
-                               sa.Day == dayOfWeek && 
+                    .Where(sa => sa.ServiceCenterId == serviceCenter.Station_id &&
+                               sa.Date.Date == appointmentDate.Date &&
                                !sa.IsAvailable)
                     .Select(sa => sa.ServiceId)
                     .ToListAsync();
@@ -158,4 +156,4 @@ namespace Vpassbackend.Services
         public string ServiceName { get; set; } = "";
         public decimal Cost { get; set; }
     }
-} 
+}

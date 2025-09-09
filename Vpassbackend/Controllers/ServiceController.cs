@@ -16,40 +16,40 @@ namespace Vpassbackend.Controllers
         public ServiceController(ApplicationDbContext context) => _context = context;
 
         [HttpGet("{serviceCenterId}")]
-        public IActionResult GetServices(int serviceCenterId, [FromQuery] int weekNumber, [FromQuery] string? day = null)
+        public IActionResult GetServices(int serviceCenterId, [FromQuery] DateTime date)
         {
+            var weekNumber = GetWeekNumber(date);
+            var day = date.DayOfWeek.ToString();
+
             var services = _context.ServiceCenterServices
                 .Where(s => s.Station_id == serviceCenterId)
-                .Select(s => new {
+                .Select(s => new
+                {
                     s.ServiceId,
                     s.Service.ServiceName,
                     s.ServiceCenterServiceId,
                     IsAvailable = s.IsAvailable && !_context.ServiceAvailabilities.Any(a =>
                         a.ServiceCenterId == serviceCenterId &&
                         a.ServiceId == s.ServiceId &&
-                        a.WeekNumber == weekNumber &&
-                        (!string.IsNullOrEmpty(day) ? a.Day == day : true) &&
+                        a.Date.Date == date.Date &&
                         !a.IsAvailable)
                 }).ToList();
 
-            // If a specific day is provided, also check closure schedules
-            if (!string.IsNullOrEmpty(day))
-            {
-                bool isClosed = _context.ClosureSchedules
-                    .Any(cs => cs.ServiceCenterId == serviceCenterId && 
-                               cs.WeekNumber == weekNumber && 
-                               cs.Day == day);
+            // Check closure schedules for this date
+            bool isClosed = _context.ClosureSchedules
+                .Any(cs => cs.ServiceCenterId == serviceCenterId &&
+                           cs.ClosureDate.Date == date.Date);
 
-                if (isClosed)
+            if (isClosed)
+            {
+                // If service center is closed, mark all services as unavailable
+                services = services.Select(s => new
                 {
-                    // If service center is closed, mark all services as unavailable
-                    services = services.Select(s => new {
-                        s.ServiceId,
-                        s.ServiceName,
-                        s.ServiceCenterServiceId,
-                        IsAvailable = false
-                    }).ToList();
-                }
+                    s.ServiceId,
+                    s.ServiceName,
+                    s.ServiceCenterServiceId,
+                    IsAvailable = false
+                }).ToList();
             }
 
             return Ok(services);
@@ -64,8 +64,7 @@ namespace Vpassbackend.Controllers
             var existing = _context.ServiceAvailabilities.FirstOrDefault(a =>
                 a.ServiceCenterId == availability.ServiceCenterId &&
                 a.ServiceId == availability.ServiceId &&
-                a.WeekNumber == availability.WeekNumber &&
-                a.Day == availability.Day);
+                a.Date.Date == availability.Date.Date);
 
             if (existing != null)
             {
@@ -80,11 +79,14 @@ namespace Vpassbackend.Controllers
         }
 
         [HttpGet("{serviceCenterId}/available")]
-        public IActionResult GetAvailableServices(int serviceCenterId, [FromQuery] int weekNumber, [FromQuery] string day)
+        public IActionResult GetAvailableServices(int serviceCenterId, [FromQuery] DateTime date)
         {
-            // Check if the service center is closed on this week and day
+            var weekNumber = GetWeekNumber(date);
+            var day = date.DayOfWeek.ToString();
+
+            // Check if the service center is closed on this date
             bool isClosed = _context.ClosureSchedules
-                .Any(cs => cs.ServiceCenterId == serviceCenterId && cs.WeekNumber == weekNumber && cs.Day == day);
+                .Any(cs => cs.ServiceCenterId == serviceCenterId && cs.ClosureDate.Date == date.Date);
 
             if (isClosed)
                 return Ok(new List<object>()); // Service center is closed
@@ -94,18 +96,19 @@ namespace Vpassbackend.Controllers
                                      join s in _context.Services on scs.ServiceId equals s.ServiceId
                                      where scs.Station_id == serviceCenterId
                                          && scs.IsAvailable // Check if service is available at service center level
-                                     select new {
+                                     select new
+                                     {
                                          scs.ServiceId,
                                          ServiceName = s.ServiceName,
                                          IsAvailable = scs.IsAvailable && !_context.ServiceAvailabilities.Any(sa =>
                                              sa.ServiceCenterId == serviceCenterId &&
                                              sa.ServiceId == scs.ServiceId &&
-                                             sa.WeekNumber == weekNumber &&
-                                             sa.Day == day &&
+                                             sa.Date.Date == date.Date &&
                                              !sa.IsAvailable)
                                      })
                                      .Where(s => s.IsAvailable)
-                                     .Select(s => new {
+                                     .Select(s => new
+                                     {
                                          s.ServiceId,
                                          s.ServiceName
                                      })
@@ -122,18 +125,16 @@ namespace Vpassbackend.Controllers
             bool exists = _context.ServiceAvailabilities.Any(sa =>
                 sa.ServiceCenterId == serviceAvailabilityDto.ServiceCenterId &&
                 sa.ServiceId == serviceAvailabilityDto.ServiceId &&
-                sa.WeekNumber == serviceAvailabilityDto.WeekNumber &&
-                sa.Day == serviceAvailabilityDto.Day);
-            
-            if (exists) 
+                sa.Date.Date == serviceAvailabilityDto.Date.Date);
+
+            if (exists)
                 return BadRequest("Duplicate service availability entry.");
 
             var serviceAvailability = new ServiceAvailability
             {
                 ServiceCenterId = serviceAvailabilityDto.ServiceCenterId,
                 ServiceId = serviceAvailabilityDto.ServiceId,
-                WeekNumber = serviceAvailabilityDto.WeekNumber,
-                Day = serviceAvailabilityDto.Day,
+                Date = serviceAvailabilityDto.Date,
                 IsAvailable = serviceAvailabilityDto.IsAvailable
             };
 
@@ -143,25 +144,35 @@ namespace Vpassbackend.Controllers
         }
 
         [HttpGet("{serviceCenterId}/availability")]
-        public IActionResult GetServiceAvailabilities(int serviceCenterId, [FromQuery] int weekNumber)
+        public IActionResult GetServiceAvailabilities(int serviceCenterId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
-            var availabilities = _context.ServiceAvailabilities
-                .Where(sa => sa.ServiceCenterId == serviceCenterId && sa.WeekNumber == weekNumber)
-                .ToList();
+            var query = _context.ServiceAvailabilities
+                .Where(sa => sa.ServiceCenterId == serviceCenterId);
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(sa => sa.Date >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(sa => sa.Date <= endDate.Value.Date);
+            }
+
+            var availabilities = query.ToList();
             return Ok(availabilities);
         }
 
         [HttpGet("{serviceCenterId}/availability/{serviceId}")]
-        public IActionResult GetServiceAvailability(int serviceCenterId, int serviceId, [FromQuery] int weekNumber, [FromQuery] string? day)
+        public IActionResult GetServiceAvailability(int serviceCenterId, int serviceId, [FromQuery] DateTime? date)
         {
             var query = _context.ServiceAvailabilities
-                .Where(sa => sa.ServiceCenterId == serviceCenterId && 
-                           sa.ServiceId == serviceId && 
-                           sa.WeekNumber == weekNumber);
+                .Where(sa => sa.ServiceCenterId == serviceCenterId &&
+                           sa.ServiceId == serviceId);
 
-            if (!string.IsNullOrEmpty(day))
+            if (date.HasValue)
             {
-                query = query.Where(sa => sa.Day == day);
+                query = query.Where(sa => sa.Date.Date == date.Value.Date);
             }
 
             var availabilities = query.ToList();
@@ -182,8 +193,7 @@ namespace Vpassbackend.Controllers
                 sa.Id != id &&
                 sa.ServiceCenterId == updateDto.ServiceCenterId &&
                 sa.ServiceId == updateDto.ServiceId &&
-                sa.WeekNumber == updateDto.WeekNumber &&
-                sa.Day == updateDto.Day);
+                sa.Date.Date == updateDto.Date.Date);
 
             if (duplicateExists)
             {
@@ -192,8 +202,7 @@ namespace Vpassbackend.Controllers
 
             existingAvailability.ServiceCenterId = updateDto.ServiceCenterId;
             existingAvailability.ServiceId = updateDto.ServiceId;
-            existingAvailability.WeekNumber = updateDto.WeekNumber;
-            existingAvailability.Day = updateDto.Day;
+            existingAvailability.Date = updateDto.Date;
             existingAvailability.IsAvailable = updateDto.IsAvailable;
 
             await _context.SaveChangesAsync();
@@ -233,8 +242,14 @@ namespace Vpassbackend.Controllers
 
             _context.ServiceAvailabilities.RemoveRange(availabilities);
             await _context.SaveChangesAsync();
-            
+
             return Ok(new { message = $"{availabilities.Count} service availabilities deleted successfully." });
+        }
+
+        private int GetWeekNumber(DateTime date)
+        {
+            var calendar = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+            return calendar.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
         }
     }
 }

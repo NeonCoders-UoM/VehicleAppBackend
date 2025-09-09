@@ -22,6 +22,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000",         // React web
+                "http://localhost:3001",         // Additional React web port
                 "http://localhost:2027",         // Flutter mobile web dev
                 "http://127.0.0.1:2027",
                 "http://localhost:8081")
@@ -35,6 +36,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000",         // React web
+                "http://localhost:3001",         // Additional React web port
                 "http://localhost:2027",         // Flutter mobile web dev
                 "http://127.0.0.1:2027",
                 "http://localhost:8081",

@@ -18,10 +18,21 @@ namespace Vpassbackend.Controllers
         [HttpPost]
         public async Task<IActionResult> AddClosure([FromBody] ClosureSchedule closure)
         {
+            // Validate that ClosureDate is not the default DateTime value
+            if (closure.ClosureDate == default(DateTime))
+            {
+                return BadRequest("Closure date must be provided and cannot be the default date.");
+            }
+
+            // Validate that ClosureDate is not in the past
+            if (closure.ClosureDate.Date < DateTime.Now.Date)
+            {
+                return BadRequest("Closure date cannot be in the past.");
+            }
+
             bool exists = _context.ClosureSchedules.Any(c =>
                 c.ServiceCenterId == closure.ServiceCenterId &&
-                c.WeekNumber == closure.WeekNumber &&
-                c.Day == closure.Day);
+                c.ClosureDate.Date == closure.ClosureDate.Date);
             if (exists) return BadRequest("Duplicate closure entry.");
 
             // Reset the ID to 0 to let Entity Framework generate it
@@ -30,17 +41,17 @@ namespace Vpassbackend.Controllers
             _context.ClosureSchedules.Add(closure);
             await _context.SaveChangesAsync();
 
-            // Update service availability for this service center on the specified day
-            await UpdateServiceAvailabilityFromClosure(closure.ServiceCenterId, closure.WeekNumber, closure.Day);
+            // Update service availability for this service center on the specified date
+            await UpdateServiceAvailabilityFromClosure(closure.ServiceCenterId, closure.ClosureDate);
 
             return Ok(closure);
         }
 
         [HttpGet("{serviceCenterId}")]
-        public IActionResult GetClosures(int serviceCenterId, [FromQuery] int weekNumber)
+        public IActionResult GetClosures(int serviceCenterId, [FromQuery] DateTime date)
         {
             var closures = _context.ClosureSchedules
-                .Where(c => c.ServiceCenterId == serviceCenterId && c.WeekNumber == weekNumber)
+                .Where(c => c.ServiceCenterId == serviceCenterId && c.ClosureDate.Date == date.Date)
                 .ToList();
             return Ok(closures);
         }
@@ -54,12 +65,23 @@ namespace Vpassbackend.Controllers
                 return NotFound("Closure schedule not found.");
             }
 
+            // Validate that ClosureDate is not the default DateTime value
+            if (updateDto.ClosureDate == default(DateTime))
+            {
+                return BadRequest("Closure date must be provided and cannot be the default date.");
+            }
+
+            // Validate that ClosureDate is not in the past
+            if (updateDto.ClosureDate.Date < DateTime.Now.Date)
+            {
+                return BadRequest("Closure date cannot be in the past.");
+            }
+
             // Check if another closure with the same details already exists (excluding current one)
             bool duplicateExists = _context.ClosureSchedules.Any(c =>
                 c.Id != id &&
                 c.ServiceCenterId == updateDto.ServiceCenterId &&
-                c.WeekNumber == updateDto.WeekNumber &&
-                c.Day == updateDto.Day);
+                c.ClosureDate.Date == updateDto.ClosureDate.Date);
 
             if (duplicateExists)
             {
@@ -68,18 +90,16 @@ namespace Vpassbackend.Controllers
 
             // Store old values for service availability update
             var oldServiceCenterId = existingClosure.ServiceCenterId;
-            var oldWeekNumber = existingClosure.WeekNumber;
-            var oldDay = existingClosure.Day;
+            var oldClosureDate = existingClosure.ClosureDate;
 
             existingClosure.ServiceCenterId = updateDto.ServiceCenterId;
-            existingClosure.WeekNumber = updateDto.WeekNumber;
-            existingClosure.Day = updateDto.Day;
+            existingClosure.ClosureDate = updateDto.ClosureDate;
 
             await _context.SaveChangesAsync();
 
             // Update service availability for both old and new closure details
-            await UpdateServiceAvailabilityFromClosure(oldServiceCenterId, oldWeekNumber, oldDay);
-            await UpdateServiceAvailabilityFromClosure(updateDto.ServiceCenterId, updateDto.WeekNumber, updateDto.Day);
+            await UpdateServiceAvailabilityFromClosure(oldServiceCenterId, oldClosureDate);
+            await UpdateServiceAvailabilityFromClosure(updateDto.ServiceCenterId, updateDto.ClosureDate);
 
             return Ok(existingClosure);
         }
@@ -95,19 +115,18 @@ namespace Vpassbackend.Controllers
 
             // Store values for service availability update
             var serviceCenterId = closure.ServiceCenterId;
-            var weekNumber = closure.WeekNumber;
-            var day = closure.Day;
+            var closureDate = closure.ClosureDate;
 
             _context.ClosureSchedules.Remove(closure);
             await _context.SaveChangesAsync();
 
             // Update service availability after closure removal
-            await UpdateServiceAvailabilityFromClosure(serviceCenterId, weekNumber, day);
+            await UpdateServiceAvailabilityFromClosure(serviceCenterId, closureDate);
 
             return Ok(new { message = "Closure schedule deleted successfully." });
         }
 
-        private async Task UpdateServiceAvailabilityFromClosure(int serviceCenterId, int weekNumber, string? day)
+        private async Task UpdateServiceAvailabilityFromClosure(int serviceCenterId, DateTime closureDate)
         {
             // Get all services for the service center
             var serviceCenterServices = await _context.ServiceCenterServices
@@ -119,18 +138,36 @@ namespace Vpassbackend.Controllers
                 return; // No services to update
             }
 
-            // Check if the service center is closed on the specified week and day
+            // Check if the service center is closed on the specified date
             bool isClosed = await _context.ClosureSchedules
-                .AnyAsync(cs => cs.ServiceCenterId == serviceCenterId && 
-                               cs.WeekNumber == weekNumber && 
-                               cs.Day == day);
+                .AnyAsync(cs => cs.ServiceCenterId == serviceCenterId &&
+                               cs.ClosureDate.Date == closureDate.Date);
 
-            // Update availability based on closure status
+            // Update or create service availability records for this date
             foreach (var service in serviceCenterServices)
             {
-                // If service center is closed, make all services unavailable
-                // If service center is open, restore availability to default (true)
-                service.IsAvailable = !isClosed;
+                var existingAvailability = await _context.ServiceAvailabilities
+                    .FirstOrDefaultAsync(sa => sa.ServiceCenterId == serviceCenterId &&
+                                             sa.ServiceId == service.ServiceId &&
+                                             sa.Date.Date == closureDate.Date);
+
+                if (existingAvailability != null)
+                {
+                    // Update existing record
+                    existingAvailability.IsAvailable = !isClosed;
+                }
+                else
+                {
+                    // Create new availability record
+                    var newAvailability = new ServiceAvailability
+                    {
+                        ServiceCenterId = serviceCenterId,
+                        ServiceId = service.ServiceId,
+                        Date = closureDate.Date,
+                        IsAvailable = !isClosed
+                    };
+                    _context.ServiceAvailabilities.Add(newAvailability);
+                }
             }
 
             await _context.SaveChangesAsync();

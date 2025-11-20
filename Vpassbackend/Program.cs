@@ -18,32 +18,70 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // --------------------- CORS ---------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevelopmentCors", policy =>
+    options.AddPolicy("FlexibleCors", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",         // React web
-                "http://localhost:3001",         // Additional React web port
-                "http://localhost:2027",         // Flutter mobile web dev
-                "http://127.0.0.1:2027",
-                "http://localhost:8081")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials()
-              .WithExposedHeaders("Content-Disposition"); // For file downloads
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrEmpty(origin))
+                return true; // Allow requests with no origin (mobile apps)
+
+            var uri = new Uri(origin);
+
+            // Allow specific React frontend
+            if (origin == "http://localhost:3000")
+                return true;
+
+            // Allow any localhost with any port (for Flutter development)
+            if (uri.Host == "localhost" || uri.Host == "127.0.0.1")
+                return true;
+
+            // Allow mobile app protocols
+            if (origin.StartsWith("capacitor://") ||
+                origin.StartsWith("ionic://") ||
+                origin.StartsWith("file://"))
+                return true;
+
+            // Add your production domains here
+            if (origin == "https://yourproductionsite.com")
+                return true;
+
+            return false;
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .WithExposedHeaders("Content-Disposition");
     });
 
     options.AddPolicy("ProductionCors", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000",         // React web
-                "http://localhost:3001",         // Additional React web port
-                "http://localhost:2027",         // Flutter mobile web dev
-                "http://127.0.0.1:2027",
-                "http://localhost:8081",
-                "https://yourproductionsite.com") // Add your production domain here
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrEmpty(origin))
+                return true; // Allow requests with no origin (mobile apps)
+
+            var uri = new Uri(origin);
+
+            // Allow specific production domains
+            if (origin == "https://yourproductionsite.com")
+                return true;
+
+            // Allow localhost for development/testing (you can remove this in production)
+            if (uri.Host == "localhost" || uri.Host == "127.0.0.1")
+                return true;
+
+            // Allow mobile app protocols
+            if (origin.StartsWith("capacitor://") ||
+                origin.StartsWith("ionic://") ||
+                origin.StartsWith("file://"))
+                return true;
+
+            return false;
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .WithExposedHeaders("Content-Disposition");
     });
 });
 
@@ -86,8 +124,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         OnMessageReceived = context =>
         {
-            context.Token = context.Request.Cookies["access_token"]
-                ?? context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+            // Check for token in multiple places for maximum compatibility
+            var token = context.Request.Cookies["access_token"] // Cookie (React)
+                ?? context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last() // Bearer header
+                ?? context.Request.Query["access_token"]; // Query parameter (mobile fallback)
+
+            context.Token = token;
             return Task.CompletedTask;
         }
     };
@@ -155,20 +197,66 @@ if (app.Environment.IsDevelopment())
 // HTTPS
 app.UseHttpsRedirection();
 
-// CORS - switch based on environment
-app.UseCors(app.Environment.IsDevelopment() ? "DevelopmentCors" : "ProductionCors");
-
-// Handle preflight OPTIONS requests
+// Enhanced CORS middleware with logging
 app.Use(async (context, next) =>
 {
+    var origin = context.Request.Headers.Origin.FirstOrDefault();
+
+    // Log CORS requests for debugging
+    if (!string.IsNullOrEmpty(origin))
+    {
+        Console.WriteLine($"CORS Request from origin: {origin}");
+    }
+
+    // Handle preflight OPTIONS requests
     if (context.Request.Method == "OPTIONS")
     {
+        var corsPolicy = app.Environment.IsDevelopment() ? "FlexibleCors" : "ProductionCors";
+
+        // Check if origin is allowed
+        bool isAllowed = false;
+        if (string.IsNullOrEmpty(origin))
+        {
+            isAllowed = true;
+        }
+        else
+        {
+            try
+            {
+                var uri = new Uri(origin);
+                isAllowed = (origin == "http://localhost:3000") ||
+                           (uri.Host == "localhost" || uri.Host == "127.0.0.1") ||
+                           origin.StartsWith("capacitor://") ||
+                           origin.StartsWith("ionic://") ||
+                           origin.StartsWith("file://") ||
+                           origin == "https://yourproductionsite.com";
+            }
+            catch
+            {
+                isAllowed = false;
+            }
+        }
+
+        if (isAllowed)
+        {
+            context.Response.Headers["Access-Control-Allow-Origin"] = origin ?? "*";
+            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+            context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+            context.Response.Headers["Access-Control-Allow-Headers"] =
+                "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma";
+            context.Response.Headers["Access-Control-Expose-Headers"] = "Content-Disposition";
+            context.Response.Headers["Access-Control-Max-Age"] = "86400"; // 24 hours
+        }
+
         context.Response.StatusCode = 204;
-        await context.Response.CompleteAsync();
         return;
     }
+
     await next();
 });
+
+// Apply CORS policy
+app.UseCors(app.Environment.IsDevelopment() ? "FlexibleCors" : "ProductionCors");
 
 // Authentication and Authorization
 app.UseAuthentication();
@@ -178,7 +266,7 @@ app.UseAuthorization();
 RouteOptions routeOptions = app.Services.GetRequiredService<IOptions<RouteOptions>>().Value;
 routeOptions.LowercaseUrls = true;
 
-// Global 404 and error handler
+// Global error handler with CORS headers
 app.Use(async (context, next) =>
 {
     try
@@ -193,9 +281,19 @@ app.Use(async (context, next) =>
     catch (Exception ex)
     {
         Console.WriteLine($"Unhandled exception: {ex.Message}");
-        await next();
+
+        // Ensure CORS headers are present in error responses
+        var origin = context.Request.Headers.Origin.FirstOrDefault();
+        if (!string.IsNullOrEmpty(origin))
+        {
+            context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+            context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        }
+
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync("Internal server error");
     }
 });
 
 app.MapControllers();
-app.Run();
+app.Run("http://localhost:5040");

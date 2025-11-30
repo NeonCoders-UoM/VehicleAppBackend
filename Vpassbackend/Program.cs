@@ -296,4 +296,8 @@ app.Use(async (context, next) =>
 });
 
 app.MapControllers();
-app.Run("http://localhost:5040");
+
+// Configure for actual device access
+// Use 0.0.0.0 to listen on all network interfaces (accessible from real devices)
+// Your device should connect to http://<YOUR_COMPUTER_IP>:5039
+app.Run("http://0.0.0.0:5039");

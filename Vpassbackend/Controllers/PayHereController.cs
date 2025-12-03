@@ -19,9 +19,9 @@ namespace Vpassbackend.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
-        private const string MerchantId = "1230582"; // TODO: Move to config
-        private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://43179df08648.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string MerchantId = "1233023"; // TODO: Move to config
+        private const string MerchantSecret = "NjEyMTA2MDk3Mjg1MDExODAwMjc5NTUwNTk1MjEwNTg3OTg0MA=="; // TODO: Move to config
+        private const string NotifyUrl = "https://d2ba38d700ef.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
         private const string ReturnUrl = "http://localhost:8081/payment-success"; // TODO: Replace with your frontend return URL
         private const string CancelUrl = "http://localhost:8081/payment-cancel"; // TODO: Replace with your frontend cancel URL
 
@@ -189,7 +189,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> Notify()
         {
             Console.WriteLine("PayHere notify endpoint called");
-            
+
             // PayHere sends form-urlencoded data
             var form = await Request.ReadFormAsync();
             var orderId = form["order_id"].ToString();
@@ -240,7 +240,7 @@ namespace Vpassbackend.Controllers
             {
                 Console.WriteLine($"Unknown orderId format: {orderId}");
             }
-            
+
             return Ok();
         }
 
@@ -281,14 +281,15 @@ namespace Vpassbackend.Controllers
                         .Where(asv => asv.AppointmentId == appointment.AppointmentId)
                         .ToListAsync();
                     _context.AppointmentServices.RemoveRange(services);
-                    
+
                     // Remove appointment
                     _context.Appointments.Remove(appointment);
                 }
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = $"Removed {pendingAppointments.Count} pending appointments",
                     removedCount = pendingAppointments.Count
                 });
@@ -299,4 +300,4 @@ namespace Vpassbackend.Controllers
             }
         }
     }
-} 
+}

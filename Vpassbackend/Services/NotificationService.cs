@@ -27,6 +27,9 @@ namespace Vpassbackend.Services
         {
             try
             {
+                // Set command timeout for this operation
+                _context.Database.SetCommandTimeout(120);
+
                 // Find notifications with invalid foreign key references
                 var orphanedNotifications = await _context.Notifications
                     .Where(n =>

@@ -13,7 +13,7 @@ namespace Vpassbackend.Controllers
     // [Authorize(Roles = "SuperAdmin")]
     [ApiController]
     [Route("api/[controller]")]
-   
+
     public class ServiceCentersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -32,9 +32,9 @@ namespace Vpassbackend.Controllers
             // Get user role and ID from JWT token
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            
+
             IQueryable<ServiceCenter> query = _context.ServiceCenters;
-            
+
             // If ServiceCenterAdmin, only show their assigned service center
             if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userIdClaim))
             {
@@ -45,7 +45,7 @@ namespace Vpassbackend.Controllers
                     query = query.Where(sc => sc.Station_id == user.Station_id);
                 }
             }
-            
+
             var serviceCenters = await query
                 .Select(sc => new ServiceCenterDTO
                 {
@@ -149,7 +149,7 @@ namespace Vpassbackend.Controllers
             // Add default daily limits for the next 30 days using configurable limit
             var maxAppointments = createServiceCenterDTO.DefaultDailyAppointmentLimit;
             var startDate = DateOnly.FromDateTime(DateTime.Today);
-            
+
             for (int i = 0; i < 30; i++)
             {
                 var dailyLimit = new ServiceCenterDailyLimit
@@ -373,7 +373,7 @@ namespace Vpassbackend.Controllers
 
             // Calculate base price (use custom price if provided, otherwise use service base price)
             decimal basePrice = createDto.ServiceCenterBasePrice ?? createDto.CustomPrice ?? service.BasePrice ?? 0;
-            
+
             // Calculate loyalty points based on package percentage
             int loyaltyPoints = _loyaltyPointsService.CalculateLoyaltyPoints(basePrice, package?.Percentage);
 

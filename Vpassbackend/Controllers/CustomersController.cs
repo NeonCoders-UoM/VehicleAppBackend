@@ -19,7 +19,6 @@ namespace Vpassbackend.Controllers
         }
 
         // GET: api/Customers
-        [Authorize(Roles = "SuperAdmin,Admin,ServiceCenterAdmin,Cashier")]
         [HttpGet]
         public IActionResult GetAllCustomers()
         {

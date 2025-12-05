@@ -20,13 +20,21 @@ namespace Vpassbackend.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Add initial delay to allow app to fully start and stagger with other background services
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await GenerateServiceReminderNotifications();
-                    await CleanupOrphanedNotifications();
+                    await GenerateServiceReminderNotifications(stoppingToken);
+                    await CleanupOrphanedNotifications(stoppingToken);
                     await Task.Delay(_period, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Notification background service is stopping.");
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -36,13 +44,16 @@ namespace Vpassbackend.BackgroundServices
             }
         }
 
-        private async Task GenerateServiceReminderNotifications()
+        private async Task GenerateServiceReminderNotifications(CancellationToken stoppingToken)
         {
             try
             {
                 using var scope = _serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+                // Set command timeout
+                context.Database.SetCommandTimeout(120);
 
                 var today = DateTime.UtcNow.Date;
 
@@ -53,7 +64,7 @@ namespace Vpassbackend.BackgroundServices
                     .Include(sr => sr.Service)
                     .Where(sr => sr.IsActive &&
                                sr.ReminderDate.Date <= today.AddDays(sr.NotifyBeforeDays))
-                    .ToListAsync();
+                    .ToListAsync(stoppingToken);
 
                 int notificationsCreated = 0;
 
@@ -62,7 +73,7 @@ namespace Vpassbackend.BackgroundServices
                     // Check if we've already created a notification for this reminder recently
                     var existingNotification = await context.Notifications
                         .FirstOrDefaultAsync(n => n.ServiceReminderId == reminder.ServiceReminderId &&
-                                                 n.CreatedAt.Date >= today.AddDays(-1)); // Within last day
+                                                 n.CreatedAt.Date >= today.AddDays(-1), stoppingToken); // Within last day
 
                     if (existingNotification == null)
                     {
@@ -82,7 +93,7 @@ namespace Vpassbackend.BackgroundServices
             }
         }
 
-        private async Task CleanupOrphanedNotifications()
+        private async Task CleanupOrphanedNotifications(CancellationToken stoppingToken)
         {
             try
             {

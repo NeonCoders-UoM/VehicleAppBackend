@@ -184,6 +184,19 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"Seeding error: {ex.Message}");
         Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
     }
+
+    // --------------------- AZURE BLOB STORAGE CONNECTION TEST ---------------------
+    try
+    {
+        var blobService = scope.ServiceProvider.GetRequiredService<AzureBlobService>();
+        // Test connection by attempting to list files (lightweight operation)
+        await blobService.ListAllFilesAsync();
+        Console.WriteLine("✓ Successfully connected to Azure Blob Storage");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"✗ Failed to connect to Azure Blob Storage: {ex.Message}");
+    }
 }
 
 // --------------------- PIPELINE ---------------------

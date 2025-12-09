@@ -33,6 +33,11 @@ namespace Vpassbackend.Data
         public DbSet<ServiceCenterDailyLimit> ServiceCenterDailyLimits { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
+        // Chatbot RAG Models
+        public DbSet<ChatConversation> ChatConversations { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<KnowledgeDocument> KnowledgeDocuments { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

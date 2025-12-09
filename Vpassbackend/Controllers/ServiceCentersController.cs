@@ -18,11 +18,13 @@ namespace Vpassbackend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoyaltyPointsService _loyaltyPointsService;
+        private readonly IGoogleMapsService _googleMapsService;
 
-        public ServiceCentersController(ApplicationDbContext context, ILoyaltyPointsService loyaltyPointsService)
+        public ServiceCentersController(ApplicationDbContext context, ILoyaltyPointsService loyaltyPointsService, IGoogleMapsService googleMapsService)
         {
             _context = context;
             _loyaltyPointsService = loyaltyPointsService;
+            _googleMapsService = googleMapsService;
         }
 
         // GET: api/ServiceCenters
@@ -128,6 +130,15 @@ namespace Vpassbackend.Controllers
         [Authorize(Roles = "SuperAdmin,Admin")]
         public async Task<ActionResult<ServiceCenterDTO>> CreateServiceCenter(CreateServiceCenterDTO createServiceCenterDTO)
         {
+            // Get coordinates from address if not provided
+            if ((!createServiceCenterDTO.Latitude.HasValue || !createServiceCenterDTO.Longitude.HasValue)
+                && !string.IsNullOrEmpty(createServiceCenterDTO.Address))
+            {
+                var (lat, lng) = await _googleMapsService.GetCoordinatesFromAddressAsync(createServiceCenterDTO.Address);
+                createServiceCenterDTO.Latitude = lat;
+                createServiceCenterDTO.Longitude = lng;
+            }
+
             var serviceCenter = new ServiceCenter
             {
                 OwnerName = createServiceCenterDTO.OwnerName,
@@ -138,8 +149,8 @@ namespace Vpassbackend.Controllers
                 Telephone = createServiceCenterDTO.Telephone,
                 Address = createServiceCenterDTO.Address,
                 Station_status = createServiceCenterDTO.Station_status,
-                Latitude = createServiceCenterDTO.Latitude,    // Added Latitude
-                Longitude = createServiceCenterDTO.Longitude,  // Added Longitude
+                Latitude = createServiceCenterDTO.Latitude ?? 0,    // Use geocoded or default to 0
+                Longitude = createServiceCenterDTO.Longitude ?? 0,  // Use geocoded or default to 0
                 DefaultDailyAppointmentLimit = createServiceCenterDTO.DefaultDailyAppointmentLimit
             };
 
@@ -371,10 +382,10 @@ namespace Vpassbackend.Controllers
                 return BadRequest("This service is already offered by this service center");
             }
 
-            // Calculate base price (use custom price if provided, otherwise use service base price)
-            decimal basePrice = createDto.ServiceCenterBasePrice ?? createDto.CustomPrice ?? service.BasePrice ?? 0;
+            // Base price always comes from the system service registration
+            decimal basePrice = service.BasePrice ?? 0;
 
-            // Calculate loyalty points based on package percentage
+            // Calculate loyalty points based on the base price (not custom price)
             int loyaltyPoints = _loyaltyPointsService.CalculateLoyaltyPoints(basePrice, package?.Percentage);
 
             var serviceCenterService = new ServiceCenterService
@@ -383,7 +394,7 @@ namespace Vpassbackend.Controllers
                 ServiceId = createDto.ServiceId,
                 PackageId = createDto.PackageId,
                 CustomPrice = createDto.CustomPrice,
-                BasePrice = basePrice,
+                BasePrice = basePrice, // Always from system service
                 LoyaltyPoints = loyaltyPoints,
                 IsAvailable = createDto.IsAvailable,
                 Notes = createDto.Notes,

@@ -252,7 +252,8 @@ namespace Vpassbackend.Services
                     .ToList() ?? new List<string>(),
                 VehicleId = appointment.Vehicle?.VehicleId ?? 0,
                 ServiceCenterId = appointment.Station_id,
-                ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown"
+                ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown",
+                Status = appointment.Status
             };
         }
 
@@ -381,6 +382,65 @@ namespace Vpassbackend.Services
                 appointmentId = appointment.AppointmentId,
                 status = appointment.Status,
                 completedAt = DateTime.UtcNow
+            };
+        }
+
+        public async Task<object> AddServicesToAppointmentAsync(int appointmentId, List<string> serviceNames)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .Include(a => a.ServiceCenter)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found.");
+
+            // Get the service center's available services matching the provided names
+            var serviceCenterServices = await _db.ServiceCenterServices
+                .Include(scs => scs.Service)
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceNames.Contains(scs.Service.ServiceName))
+                .ToListAsync();
+
+            if (serviceCenterServices.Count == 0)
+                throw new InvalidOperationException("No matching services found for this service center.");
+
+            int addedCount = 0;
+            foreach (var scs in serviceCenterServices)
+            {
+                // Check if this service is already in the appointment
+                var existingService = appointment.AppointmentServices
+                    .FirstOrDefault(asv => asv.ServiceId == scs.ServiceId);
+
+                if (existingService == null)
+                {
+                    // Add new service to appointment
+                    var newAppointmentService = new Models.AppointmentService
+                    {
+                        AppointmentId = appointmentId,
+                        ServiceId = scs.ServiceId,
+                        ServicePrice = scs.CustomPrice ?? scs.Service.BasePrice ?? 0
+                    };
+
+                    _db.AppointmentServices.Add(newAppointmentService);
+                    addedCount++;
+                }
+            }
+
+            // Update appointment price
+            var allServices = await _db.AppointmentServices
+                .Where(asv => asv.AppointmentId == appointmentId)
+                .ToListAsync();
+            
+            appointment.AppointmentPrice = allServices.Sum(asv => asv.ServicePrice);
+
+            await _db.SaveChangesAsync();
+
+            return new
+            {
+                message = $"Successfully added {addedCount} new service(s) to appointment.",
+                appointmentId = appointment.AppointmentId,
+                servicesAdded = addedCount,
+                totalPrice = appointment.AppointmentPrice
             };
         }
     }

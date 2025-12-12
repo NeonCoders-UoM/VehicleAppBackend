@@ -443,5 +443,42 @@ namespace Vpassbackend.Services
                 totalPrice = appointment.AppointmentPrice
             };
         }
+
+        public async Task<object> GetLoyaltyPointsForAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found.");
+
+            // Only award loyalty points for completed appointments
+            if (appointment.Status != "Completed")
+            {
+                return new
+                {
+                    appointmentId = appointmentId,
+                    loyaltyPoints = 0,
+                    status = appointment.Status,
+                    message = "Loyalty points are only awarded for completed appointments"
+                };
+            }
+
+            // Get service IDs from appointment
+            var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
+
+            // Get loyalty points from ServiceCenterServices table
+            var totalLoyaltyPoints = await _db.ServiceCenterServices
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
+                .SumAsync(scs => scs.LoyaltyPoints ?? 0);
+
+            return new
+            {
+                appointmentId = appointmentId,
+                loyaltyPoints = totalLoyaltyPoints,
+                status = appointment.Status
+            };
+        }
     }
 }

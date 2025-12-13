@@ -69,7 +69,7 @@ namespace Vpassbackend.Controllers
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetFeedbackById), new { id = feedback.FeedbackId }, 
+            return CreatedAtAction(nameof(GetFeedbackById), new { id = feedback.FeedbackId },
                 new FeedbackDTO
                 {
                     FeedbackId = feedback.FeedbackId,
@@ -88,9 +88,8 @@ namespace Vpassbackend.Controllers
 
         // GET: api/Feedback
         [HttpGet]
-        [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
         public async Task<ActionResult<IEnumerable<FeedbackDTO>>> GetAllFeedbacks(
-            [FromQuery] int page = 1, 
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] int? serviceCenterId = null,
             [FromQuery] int? minRating = null,
@@ -208,7 +207,7 @@ namespace Vpassbackend.Controllers
 
         // GET: api/Feedback/ServiceCenter/{serviceCenterId}
         [HttpGet("ServiceCenter/{serviceCenterId}")]
-        [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
+        // [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
         public async Task<ActionResult<IEnumerable<FeedbackDTO>>> GetServiceCenterFeedbacks(int serviceCenterId)
         {
             var feedbacks = await _context.Feedbacks
@@ -238,7 +237,7 @@ namespace Vpassbackend.Controllers
 
         // GET: api/Feedback/Stats
         [HttpGet("Stats")]
-        [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
+        // [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
         public async Task<ActionResult<FeedbackStatsDTO>> GetFeedbackStats([FromQuery] int? serviceCenterId = null)
         {
             var query = _context.Feedbacks.AsQueryable();

@@ -182,5 +182,47 @@ namespace Vpassbackend.Controllers
                 return StatusCode(500, new { message = "An error occurred while completing the appointment", error = ex.Message });
             }
         }
+
+        // Add services to an existing appointment
+        [HttpPost("{appointmentId}/add-services")]
+        public async Task<IActionResult> AddServicesToAppointment(int appointmentId, [FromBody] List<string> serviceNames)
+        {
+            try
+            {
+                var result = await _service.AddServicesToAppointmentAsync(appointmentId, serviceNames);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException invEx)
+            {
+                return BadRequest(new { message = invEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while adding services", error = ex.Message });
+            }
+        }
+
+        // Get loyalty points for a specific appointment
+        [HttpGet("{appointmentId}/loyalty-points")]
+        public async Task<IActionResult> GetLoyaltyPointsForAppointment(int appointmentId)
+        {
+            try
+            {
+                var result = await _service.GetLoyaltyPointsForAppointmentAsync(appointmentId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching loyalty points", error = ex.Message });
+            }
+        }
     }
 }

@@ -9,6 +9,14 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Routing;
 using System.Text;
 
+// ============================================================================
+// PDF PROCESSOR MODE: Uncomment the lines below to process PDFs, then run: dotnet run
+// After processing, comment them out again to run the web API normally
+// ============================================================================
+// await Vpassbackend.Scripts.DirectPdfProcessor.Main(args);
+// return;
+// ============================================================================
+
 var builder = WebApplication.CreateBuilder(args);
 
 // --------------------- DATABASE ---------------------
@@ -97,6 +105,17 @@ builder.Services.AddScoped<AppointmentPaymentService>();
 builder.Services.AddScoped<ServiceCenterSearchService>();
 builder.Services.AddScoped<DailyLimitService>();
 builder.Services.AddScoped<AzureBlobService>();
+
+// --------------------- GOOGLE MAPS SERVICE ---------------------
+builder.Services.AddHttpClient<IGoogleMapsService, GoogleMapsService>();
+
+// --------------------- CHATBOT RAG SERVICES ---------------------
+builder.Services.AddHttpClient<OpenAIEmbeddingService>();
+builder.Services.AddHttpClient<QdrantService>();
+builder.Services.AddHttpClient<GroqService>();
+builder.Services.AddScoped<ChatbotService>();
+builder.Services.AddScoped<PdfKnowledgeService>();
+
 builder.Services.AddHttpClient();
 
 // --------------------- BACKGROUND SERVICES ---------------------

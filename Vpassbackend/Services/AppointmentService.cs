@@ -11,7 +11,7 @@ namespace Vpassbackend.Services
         private readonly DailyLimitService _dailyLimitService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<AppointmentService> _logger;
-        
+
         public AppointmentService(ApplicationDbContext db, DailyLimitService dailyLimitService, INotificationService notificationService, ILogger<AppointmentService> logger)
         {
             _db = db;
@@ -145,7 +145,8 @@ namespace Vpassbackend.Services
                 {
                     AppointmentId = a.AppointmentId,
                     OwnerName = (a.Customer != null ? a.Customer.FirstName + " " + a.Customer.LastName : "Unknown"),
-                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue
+                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue,
+                    Status = a.Status ?? "Payment_Pending"
                 })
                 .ToListAsync();
         }
@@ -252,7 +253,8 @@ namespace Vpassbackend.Services
                     .ToList() ?? new List<string>(),
                 VehicleId = appointment.Vehicle?.VehicleId ?? 0,
                 ServiceCenterId = appointment.Station_id,
-                ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown"
+                ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown",
+                Status = appointment.Status
             };
         }
 
@@ -299,7 +301,7 @@ namespace Vpassbackend.Services
             {
                 // Keep the latest appointment (highest ID) and remove the rest
                 var appointmentsToRemove = group.OrderByDescending(a => a.AppointmentId).Skip(1).ToList();
-                
+
                 foreach (var appointment in appointmentsToRemove)
                 {
                     // Remove associated appointment services first
@@ -307,7 +309,7 @@ namespace Vpassbackend.Services
                         .Where(asv => asv.AppointmentId == appointment.AppointmentId)
                         .ToListAsync();
                     _db.AppointmentServices.RemoveRange(appointmentServices);
-                    
+
                     // Remove the appointment
                     _db.Appointments.Remove(appointment);
                     totalRemoved++;
@@ -316,7 +318,8 @@ namespace Vpassbackend.Services
 
             await _db.SaveChangesAsync();
 
-            return new { 
+            return new
+            {
                 message = $"Cleanup completed. Removed {totalRemoved} duplicate appointments.",
                 totalRemoved = totalRemoved
             };
@@ -381,6 +384,102 @@ namespace Vpassbackend.Services
                 appointmentId = appointment.AppointmentId,
                 status = appointment.Status,
                 completedAt = DateTime.UtcNow
+            };
+        }
+
+        public async Task<object> AddServicesToAppointmentAsync(int appointmentId, List<string> serviceNames)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .Include(a => a.ServiceCenter)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException("Appointment not found.");
+
+            // Get the service center's available services matching the provided names
+            var serviceCenterServices = await _db.ServiceCenterServices
+                .Include(scs => scs.Service)
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceNames.Contains(scs.Service.ServiceName))
+                .ToListAsync();
+
+            if (serviceCenterServices.Count == 0)
+                throw new InvalidOperationException("No matching services found for this service center.");
+
+            int addedCount = 0;
+            foreach (var scs in serviceCenterServices)
+            {
+                // Check if this service is already in the appointment
+                var existingService = appointment.AppointmentServices
+                    .FirstOrDefault(asv => asv.ServiceId == scs.ServiceId);
+
+                if (existingService == null)
+                {
+                    // Add new service to appointment
+                    var newAppointmentService = new Models.AppointmentService
+                    {
+                        AppointmentId = appointmentId,
+                        ServiceId = scs.ServiceId,
+                        ServicePrice = scs.CustomPrice ?? scs.Service.BasePrice ?? 0
+                    };
+
+                    _db.AppointmentServices.Add(newAppointmentService);
+                    addedCount++;
+                }
+            }
+
+            // Update appointment price
+            var allServices = await _db.AppointmentServices
+                .Where(asv => asv.AppointmentId == appointmentId)
+                .ToListAsync();
+
+            appointment.AppointmentPrice = allServices.Sum(asv => asv.ServicePrice);
+
+            await _db.SaveChangesAsync();
+
+            return new
+            {
+                message = $"Successfully added {addedCount} new service(s) to appointment.",
+                appointmentId = appointment.AppointmentId,
+                servicesAdded = addedCount,
+                totalPrice = appointment.AppointmentPrice
+            };
+        }
+
+        public async Task<object> GetLoyaltyPointsForAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found.");
+
+            // Only award loyalty points for completed appointments
+            if (appointment.Status != "Completed")
+            {
+                return new
+                {
+                    appointmentId = appointmentId,
+                    loyaltyPoints = 0,
+                    status = appointment.Status,
+                    message = "Loyalty points are only awarded for completed appointments"
+                };
+            }
+
+            // Get service IDs from appointment
+            var serviceIds = appointment.AppointmentServices.Select(s => s.ServiceId).ToList();
+
+            // Get loyalty points from ServiceCenterServices table
+            var totalLoyaltyPoints = await _db.ServiceCenterServices
+                .Where(scs => scs.Station_id == appointment.Station_id && serviceIds.Contains(scs.ServiceId))
+                .SumAsync(scs => scs.LoyaltyPoints ?? 0);
+
+            return new
+            {
+                appointmentId = appointmentId,
+                loyaltyPoints = totalLoyaltyPoints,
+                status = appointment.Status
             };
         }
     }

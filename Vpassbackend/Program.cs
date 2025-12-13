@@ -203,6 +203,19 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"Seeding error: {ex.Message}");
         Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
     }
+
+    // --------------------- AZURE BLOB STORAGE CONNECTION TEST ---------------------
+    try
+    {
+        var blobService = scope.ServiceProvider.GetRequiredService<AzureBlobService>();
+        // Test connection by attempting to list files (lightweight operation)
+        await blobService.ListAllFilesAsync();
+        Console.WriteLine("✓ Successfully connected to Azure Blob Storage");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"✗ Failed to connect to Azure Blob Storage: {ex.Message}");
+    }
 }
 
 // --------------------- PIPELINE ---------------------
@@ -315,4 +328,8 @@ app.Use(async (context, next) =>
 });
 
 app.MapControllers();
-app.Run("http://localhost:5040");
+
+// Configure for actual device access
+// Use 0.0.0.0 to listen on all network interfaces (accessible from real devices)
+// Your device should connect to http://<YOUR_COMPUTER_IP>:5039
+app.Run("http://0.0.0.0:5039");

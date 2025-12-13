@@ -19,9 +19,9 @@ namespace Vpassbackend.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private const string PayHereSandboxUrl = "https://sandbox.payhere.lk/pay/checkout";
-        private const string MerchantId = "1230582"; // TODO: Move to config
-        private const string MerchantSecret = "MTA4NzE3ODU2ODQwNTA4MTE1OTQzOTQxMDE0MzcyMjAyNTg2MDgy"; // TODO: Move to config
-        private const string NotifyUrl = "https://43179df08648.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
+        private const string MerchantId = "1233023"; // TODO: Move to config
+        private const string MerchantSecret = "NjEyMTA2MDk3Mjg1MDExODAwMjc5NTUwNTk1MjEwNTg3OTg0MA=="; // TODO: Move to config
+        private const string NotifyUrl = "https://d2ba38d700ef.ngrok-free.app/api/payhere/notify"; // TODO: Replace with your ngrok URL
         private const string ReturnUrl = "http://localhost:8081/payment-success"; // TODO: Replace with your frontend return URL
         private const string CancelUrl = "http://localhost:8081/payment-cancel"; // TODO: Replace with your frontend cancel URL
 
@@ -189,7 +189,7 @@ namespace Vpassbackend.Controllers
         public async Task<IActionResult> Notify()
         {
             Console.WriteLine("PayHere notify endpoint called");
-            
+
             // PayHere sends form-urlencoded data
             var form = await Request.ReadFormAsync();
             var orderId = form["order_id"].ToString();
@@ -240,7 +240,7 @@ namespace Vpassbackend.Controllers
             {
                 Console.WriteLine($"Unknown orderId format: {orderId}");
             }
-            
+
             return Ok();
         }
 
@@ -264,6 +264,107 @@ namespace Vpassbackend.Controllers
             return NotFound(new { status = "Unknown" });
         }
 
+        // Client-side payment confirmation endpoint
+        // This is called by the mobile app after receiving payment success from PayHere SDK
+        [HttpPost("confirm-payment")]
+        public async Task<IActionResult> ConfirmPayment([FromBody] ConfirmPaymentRequest request)
+        {
+            try
+            {
+                Console.WriteLine($"📱 Client payment confirmation received");
+                Console.WriteLine($"   Order ID: {request.OrderId}");
+                Console.WriteLine($"   Payment No: {request.PaymentNo}");
+                Console.WriteLine($"   Status Code: {request.StatusCode}");
+
+                // Validate status code (2 = success in PayHere)
+                if (request.StatusCode != 2)
+                {
+                    Console.WriteLine($"❌ Invalid status code: {request.StatusCode}");
+                    return BadRequest(new { message = "Payment not successful", statusCode = request.StatusCode });
+                }
+
+                var paymentStatus = "Paid";
+                var paidAt = DateTime.UtcNow;
+
+                // Handle different payment types
+                if (request.OrderId.StartsWith("invoice_"))
+                {
+                    Console.WriteLine("📄 Processing invoice payment confirmation");
+                    // PDF download payment
+                    int invoiceId = 0;
+                    if (int.TryParse(request.OrderId.Split('_')[1], out invoiceId))
+                    {
+                        var paymentLog = await _context.PaymentLogs
+                            .Include(p => p.Invoice)
+                            .Where(p => p.InvoiceId == invoiceId)
+                            .OrderByDescending(p => p.LogId)
+                            .FirstOrDefaultAsync();
+
+                        if (paymentLog != null)
+                        {
+                            // Check if already paid
+                            if (paymentLog.Status == "Paid")
+                            {
+                                Console.WriteLine("✅ Payment already marked as Paid");
+                                return Ok(new { message = "Payment already confirmed", status = "Paid" });
+                            }
+
+                            paymentLog.Status = paymentStatus;
+                            paymentLog.PaymentDate = paidAt;
+                            await _context.SaveChangesAsync();
+                            Console.WriteLine($"✅ Invoice payment status updated to {paymentStatus}");
+
+                            return Ok(new
+                            {
+                                message = "Payment confirmed successfully",
+                                status = paymentStatus,
+                                invoiceId = invoiceId
+                            });
+                        }
+                        else
+                        {
+                            Console.WriteLine($"❌ Payment log not found for invoice {invoiceId}");
+                            return NotFound(new { message = "Payment log not found" });
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Invalid order ID format: {request.OrderId}");
+                        return BadRequest(new { message = "Invalid order ID format" });
+                    }
+                }
+                else if (request.OrderId.StartsWith("appointment_"))
+                {
+                    Console.WriteLine("📅 Processing appointment payment confirmation");
+                    // Appointment payment
+                    var success = await _appointmentPaymentService.UpdatePaymentStatusAsync(request.OrderId, paymentStatus);
+                    if (!success)
+                    {
+                        Console.WriteLine($"❌ Failed to update appointment payment");
+                        return StatusCode(500, new { message = "Failed to update appointment payment status" });
+                    }
+
+                    Console.WriteLine($"✅ Appointment payment confirmed successfully");
+                    return Ok(new
+                    {
+                        message = "Appointment payment confirmed successfully",
+                        status = paymentStatus
+                    });
+                }
+                else
+                {
+                    Console.WriteLine($"❌ Unknown order ID format: {request.OrderId}");
+                    return BadRequest(new { message = "Unknown order ID format" });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error confirming payment: {ex.Message}");
+                Console.WriteLine($"📚 Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Error confirming payment", error = ex.Message });
+            }
+        }
+
         // Cleanup endpoint to remove pending appointments
         [HttpDelete("cleanup-pending")]
         public async Task<IActionResult> CleanupPendingAppointments()
@@ -281,14 +382,15 @@ namespace Vpassbackend.Controllers
                         .Where(asv => asv.AppointmentId == appointment.AppointmentId)
                         .ToListAsync();
                     _context.AppointmentServices.RemoveRange(services);
-                    
+
                     // Remove appointment
                     _context.Appointments.Remove(appointment);
                 }
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
+                return Ok(new
+                {
                     message = $"Removed {pendingAppointments.Count} pending appointments",
                     removedCount = pendingAppointments.Count
                 });
@@ -298,5 +400,13 @@ namespace Vpassbackend.Controllers
                 return StatusCode(500, new { message = "Error during cleanup", error = ex.Message });
             }
         }
+
+        // DTO for payment confirmation
+        public class ConfirmPaymentRequest
+        {
+            public string OrderId { get; set; } = string.Empty;
+            public string PaymentNo { get; set; } = string.Empty;
+            public int StatusCode { get; set; }
+        }
     }
-} 
+}

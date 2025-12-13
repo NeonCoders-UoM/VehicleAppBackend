@@ -11,7 +11,7 @@ namespace Vpassbackend.Services
         private readonly DailyLimitService _dailyLimitService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<AppointmentService> _logger;
-        
+
         public AppointmentService(ApplicationDbContext db, DailyLimitService dailyLimitService, INotificationService notificationService, ILogger<AppointmentService> logger)
         {
             _db = db;
@@ -145,7 +145,8 @@ namespace Vpassbackend.Services
                 {
                     AppointmentId = a.AppointmentId,
                     OwnerName = (a.Customer != null ? a.Customer.FirstName + " " + a.Customer.LastName : "Unknown"),
-                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue
+                    AppointmentDate = a.AppointmentDate ?? DateTime.MinValue,
+                    Status = a.Status ?? "Payment_Pending"
                 })
                 .ToListAsync();
         }
@@ -300,7 +301,7 @@ namespace Vpassbackend.Services
             {
                 // Keep the latest appointment (highest ID) and remove the rest
                 var appointmentsToRemove = group.OrderByDescending(a => a.AppointmentId).Skip(1).ToList();
-                
+
                 foreach (var appointment in appointmentsToRemove)
                 {
                     // Remove associated appointment services first
@@ -308,7 +309,7 @@ namespace Vpassbackend.Services
                         .Where(asv => asv.AppointmentId == appointment.AppointmentId)
                         .ToListAsync();
                     _db.AppointmentServices.RemoveRange(appointmentServices);
-                    
+
                     // Remove the appointment
                     _db.Appointments.Remove(appointment);
                     totalRemoved++;
@@ -317,7 +318,8 @@ namespace Vpassbackend.Services
 
             await _db.SaveChangesAsync();
 
-            return new { 
+            return new
+            {
                 message = $"Cleanup completed. Removed {totalRemoved} duplicate appointments.",
                 totalRemoved = totalRemoved
             };
@@ -430,7 +432,7 @@ namespace Vpassbackend.Services
             var allServices = await _db.AppointmentServices
                 .Where(asv => asv.AppointmentId == appointmentId)
                 .ToListAsync();
-            
+
             appointment.AppointmentPrice = allServices.Sum(asv => asv.ServicePrice);
 
             await _db.SaveChangesAsync();

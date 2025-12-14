@@ -21,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --------------------- DATABASE ---------------------
 // Priority: Environment Variable > appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
@@ -58,8 +58,8 @@ builder.Services.AddCors(options =>
                 origin.StartsWith("file://"))
                 return true;
 
-            // Allow Vercel deployed Next.js frontend
-            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
+            // Allow Vercel deployed Next.js frontend (production)
+            if (origin == "https://web-app-frontend-five.vercel.app")
                 return true;
 
             // Allow any Vercel preview deployments
@@ -91,8 +91,8 @@ builder.Services.AddCors(options =>
             if (origin == "https://yourproductionsite.com")
                 return true;
 
-            // Allow Vercel deployed Next.js frontend
-            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
+            // Allow Vercel deployed Next.js frontend (production)
+            if (origin == "https://web-app-frontend-five.vercel.app")
                 return true;
 
             // Allow any Vercel preview deployments
@@ -286,7 +286,7 @@ app.Use(async (context, next) =>
                            origin.StartsWith("capacitor://") ||
                            origin.StartsWith("ionic://") ||
                            origin.StartsWith("file://") ||
-                           origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app" ||
+                           origin == "https://web-app-frontend-five.vercel.app" ||
                            origin.EndsWith(".vercel.app") ||
                            origin == "https://yourproductionsite.com";
             }

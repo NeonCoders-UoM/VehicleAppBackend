@@ -20,8 +20,17 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // --------------------- DATABASE ---------------------
+// Priority: Environment Variable > appsettings.json
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Database connection string not found. Set DATABASE_URL environment variable or configure DefaultConnection in appsettings.json");
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // --------------------- CORS ---------------------
 builder.Services.AddCors(options =>

@@ -49,6 +49,14 @@ builder.Services.AddCors(options =>
                 origin.StartsWith("file://"))
                 return true;
 
+            // Allow Vercel deployed Next.js frontend
+            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
+                return true;
+
+            // Allow any Vercel preview deployments
+            if (origin.EndsWith(".vercel.app"))
+                return true;
+
             // Add your production domains here
             if (origin == "https://yourproductionsite.com")
                 return true;
@@ -72,6 +80,14 @@ builder.Services.AddCors(options =>
 
             // Allow specific production domains
             if (origin == "https://yourproductionsite.com")
+                return true;
+
+            // Allow Vercel deployed Next.js frontend
+            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
+                return true;
+
+            // Allow any Vercel preview deployments
+            if (origin.EndsWith(".vercel.app"))
                 return true;
 
             // Allow localhost for development/testing (you can remove this in production)
@@ -261,6 +277,8 @@ app.Use(async (context, next) =>
                            origin.StartsWith("capacitor://") ||
                            origin.StartsWith("ionic://") ||
                            origin.StartsWith("file://") ||
+                           origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app" ||
+                           origin.EndsWith(".vercel.app") ||
                            origin == "https://yourproductionsite.com";
             }
             catch

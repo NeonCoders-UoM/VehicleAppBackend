@@ -160,7 +160,7 @@ namespace Vpassbackend.Controllers
                     }
                     : document.ContentType;
 
-                Response.Headers.Add("Content-Disposition", $"{mode}; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
+                Response.Headers["Content-Disposition"] = $"{mode}; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}";
 
                 return File(stream, contentType);
             }

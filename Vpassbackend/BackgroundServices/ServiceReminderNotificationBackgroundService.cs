@@ -25,6 +25,9 @@ namespace Vpassbackend.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Add initial delay to allow app to fully start
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -32,6 +35,10 @@ namespace Vpassbackend.BackgroundServices
                     using (var scope = _serviceProvider.CreateScope())
                     {
                         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                        // Set command timeout for this context instance
+                        context.Database.SetCommandTimeout(120);
+
                         var today = DateTime.UtcNow.Date;
 
                         var remindersToNotify = await context.ServiceReminders
@@ -111,10 +118,13 @@ namespace Vpassbackend.BackgroundServices
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[ServiceReminderNotificationBackgroundService] Error generating notifications from service reminders");
+                    // Wait longer before retrying after error
+                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                    continue;
                 }
 
                 await Task.Delay(_interval, stoppingToken);
             }
         }
     }
-} 
+}

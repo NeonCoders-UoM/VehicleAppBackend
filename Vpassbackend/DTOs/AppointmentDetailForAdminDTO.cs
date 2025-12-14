@@ -8,8 +8,9 @@
         public string OwnerName { get; set; }
         public DateTime AppointmentDate { get; set; }
         public List<string> Services { get; set; }
-        public int VehicleId { get; set; } // <-- Add this
-        public int ServiceCenterId { get; set; } // <-- Add this
-        public string ServiceCenterName { get; set; } // <-- Optional, for display
+        public int VehicleId { get; set; }
+        public int ServiceCenterId { get; set; }
+        public string ServiceCenterName { get; set; }
+        public string? Status { get; set; }
     }
 }

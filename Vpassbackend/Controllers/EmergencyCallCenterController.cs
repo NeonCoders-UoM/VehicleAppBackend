@@ -45,7 +45,16 @@ namespace Vpassbackend.Controllers
             return Ok(centers);
         }
 
+        // GET: api/EmergencyCallCenter/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCenterById(int id)
+        {
+            var center = await _context.EmergencyCallCenters.FindAsync(id);
+            if (center == null)
+                return NotFound();
 
+            return Ok(center);
+        }
 
         // PUT: api/EmergencyCallCenter/{id}
         [HttpPut("{id}")]

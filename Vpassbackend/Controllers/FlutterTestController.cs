@@ -46,9 +46,9 @@ namespace Vpassbackend.Controllers
         public IActionResult TestCors()
         {
             // Add CORS headers manually in case middleware isn't working
-            Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+            Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
 
             return Ok(new
             {

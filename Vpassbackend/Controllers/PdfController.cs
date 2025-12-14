@@ -29,6 +29,10 @@ namespace Vpassbackend.Controllers
         {
             try
             {
+                // Log request details
+                Console.WriteLine($"📄 PDF Download Request - Vehicle ID: {vehicleId}");
+                Console.WriteLine($"🔍 Authorization Header: {Request.Headers["Authorization"]}");
+
                 // Get vehicle with customer information
                 var vehicle = await _context.Vehicles
                     .Include(v => v.Customer)
@@ -36,26 +40,60 @@ namespace Vpassbackend.Controllers
 
                 if (vehicle == null)
                 {
+                    Console.WriteLine($"❌ Vehicle {vehicleId} not found");
                     return NotFound(new { message = "Vehicle not found" });
                 }
+
+                Console.WriteLine($"✅ Vehicle found: {vehicle.RegistrationNumber}");
 
                 // Check payment status for this vehicle's latest invoice
                 var invoice = await _context.Invoices
                     .Where(i => i.VehicleId == vehicleId)
                     .OrderByDescending(i => i.InvoiceDate)
                     .FirstOrDefaultAsync();
+
                 if (invoice == null)
                 {
-                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to download the PDF." });
+                    Console.WriteLine($"⚠️ No invoice found for vehicle {vehicleId}");
+                    return StatusCode(403, new
+                    {
+                        message = "No payment found for this vehicle. Please complete payment to download the PDF.",
+                        code = "NO_INVOICE"
+                    });
                 }
+
+                Console.WriteLine($"📝 Invoice found: ID={invoice.InvoiceId}, Date={invoice.InvoiceDate}");
+
                 var paymentLog = await _context.PaymentLogs
                     .Where(p => p.InvoiceId == invoice.InvoiceId)
                     .OrderByDescending(p => p.LogId)
                     .FirstOrDefaultAsync();
-                if (paymentLog == null || paymentLog.Status != "Paid")
+
+                if (paymentLog == null)
                 {
-                    return StatusCode(403, new { message = "Payment required. Please complete payment to download the PDF." });
+                    Console.WriteLine($"⚠️ No payment log found for invoice {invoice.InvoiceId}");
+                    return StatusCode(403, new
+                    {
+                        message = "Payment not recorded. Please contact support if you have completed payment.",
+                        code = "NO_PAYMENT_LOG",
+                        invoiceId = invoice.InvoiceId
+                    });
                 }
+
+                Console.WriteLine($"💳 Payment Log: Status={paymentLog.Status}, LogID={paymentLog.LogId}");
+
+                if (paymentLog.Status != "Paid")
+                {
+                    Console.WriteLine($"❌ Payment status is '{paymentLog.Status}', not 'Paid'");
+                    return StatusCode(403, new
+                    {
+                        message = $"Payment status is '{paymentLog.Status}'. Please complete payment to download the PDF.",
+                        code = "PAYMENT_NOT_COMPLETED",
+                        currentStatus = paymentLog.Status
+                    });
+                }
+
+                Console.WriteLine($"✅ Payment verified - proceeding with PDF generation");
 
                 // Get service history for the vehicle
                 var serviceHistory = await _context.VehicleServiceHistories
@@ -80,8 +118,12 @@ namespace Vpassbackend.Controllers
                     })
                     .ToListAsync();
 
+                Console.WriteLine($"📊 Found {serviceHistory.Count} service records");
+
                 // Generate PDF
                 var pdfBytes = await _pdfService.GenerateVehicleServiceHistoryPdfAsync(vehicle, serviceHistory);
+
+                Console.WriteLine($"✅ PDF generated successfully ({pdfBytes.Length} bytes)");
 
                 // Create filename
                 var fileName = $"ServiceHistory_{vehicle.RegistrationNumber}_{DateTime.Now:yyyyMMdd}.pdf";
@@ -91,7 +133,14 @@ namespace Vpassbackend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error generating PDF", error = ex.Message });
+                Console.WriteLine($"❌ Error generating PDF: {ex.Message}");
+                Console.WriteLine($"📚 Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new
+                {
+                    message = "Error generating PDF",
+                    error = ex.Message,
+                    code = "INTERNAL_ERROR"
+                });
             }
         }
 
@@ -105,6 +154,8 @@ namespace Vpassbackend.Controllers
         {
             try
             {
+                Console.WriteLine($"📄 PDF Summary Request - Vehicle ID: {vehicleId}");
+
                 // Get vehicle with customer information
                 var vehicle = await _context.Vehicles
                     .Include(v => v.Customer)
@@ -112,25 +163,56 @@ namespace Vpassbackend.Controllers
 
                 if (vehicle == null)
                 {
+                    Console.WriteLine($"❌ Vehicle {vehicleId} not found");
                     return NotFound(new { message = "Vehicle not found" });
                 }
+
+                Console.WriteLine($"✅ Vehicle found: {vehicle.RegistrationNumber}");
 
                 // Check payment status for this vehicle's latest invoice
                 var invoice = await _context.Invoices
                     .Where(i => i.VehicleId == vehicleId)
                     .OrderByDescending(i => i.InvoiceDate)
                     .FirstOrDefaultAsync();
+
                 if (invoice == null)
                 {
-                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to download the PDF." });
+                    Console.WriteLine($"⚠️ No invoice found for vehicle {vehicleId}");
+                    return StatusCode(403, new
+                    {
+                        message = "No payment found for this vehicle. Please pay to download the PDF.",
+                        code = "NO_INVOICE"
+                    });
                 }
+
+                Console.WriteLine($"📝 Invoice found: ID={invoice.InvoiceId}");
+
                 var paymentLog = await _context.PaymentLogs
                     .Where(p => p.InvoiceId == invoice.InvoiceId)
                     .OrderByDescending(p => p.LogId)
                     .FirstOrDefaultAsync();
-                if (paymentLog == null || paymentLog.Status != "Paid")
+
+                if (paymentLog == null)
                 {
-                    return StatusCode(403, new { message = "Payment required. Please complete payment to download the PDF." });
+                    Console.WriteLine($"⚠️ No payment log found for invoice {invoice.InvoiceId}");
+                    return StatusCode(403, new
+                    {
+                        message = "Payment not recorded. Please contact support if you have completed payment.",
+                        code = "NO_PAYMENT_LOG"
+                    });
+                }
+
+                Console.WriteLine($"💳 Payment status: {paymentLog.Status}");
+
+                if (paymentLog.Status != "Paid")
+                {
+                    Console.WriteLine($"❌ Payment not completed: {paymentLog.Status}");
+                    return StatusCode(403, new
+                    {
+                        message = $"Payment required. Please complete payment to download the PDF.",
+                        code = "PAYMENT_NOT_COMPLETED",
+                        currentStatus = paymentLog.Status
+                    });
                 }
 
                 // Get service history for the vehicle
@@ -156,8 +238,12 @@ namespace Vpassbackend.Controllers
                     })
                     .ToListAsync();
 
+                Console.WriteLine($"📊 Found {serviceHistory.Count} service records");
+
                 // Generate PDF
                 var pdfBytes = await _pdfService.GenerateServiceHistorySummaryPdfAsync(vehicle, serviceHistory);
+
+                Console.WriteLine($"✅ PDF generated successfully ({pdfBytes.Length} bytes)");
 
                 // Create filename
                 var fileName = $"ServiceSummary_{vehicle.RegistrationNumber}_{DateTime.Now:yyyyMMdd}.pdf";
@@ -167,7 +253,14 @@ namespace Vpassbackend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error generating PDF", error = ex.Message });
+                Console.WriteLine($"❌ Error generating PDF: {ex.Message}");
+                Console.WriteLine($"📚 Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new
+                {
+                    message = "Error generating PDF",
+                    error = ex.Message,
+                    code = "INTERNAL_ERROR"
+                });
             }
         }
 
@@ -181,6 +274,8 @@ namespace Vpassbackend.Controllers
         {
             try
             {
+                Console.WriteLine($"👁️ PDF Preview Request - Vehicle ID: {vehicleId}");
+
                 // Get vehicle with customer information
                 var vehicle = await _context.Vehicles
                     .Include(v => v.Customer)
@@ -188,25 +283,41 @@ namespace Vpassbackend.Controllers
 
                 if (vehicle == null)
                 {
+                    Console.WriteLine($"❌ Vehicle {vehicleId} not found");
                     return NotFound(new { message = "Vehicle not found" });
                 }
+
+                Console.WriteLine($"✅ Vehicle found: {vehicle.RegistrationNumber}");
 
                 // Check payment status for this vehicle's latest invoice
                 var invoice = await _context.Invoices
                     .Where(i => i.VehicleId == vehicleId)
                     .OrderByDescending(i => i.InvoiceDate)
                     .FirstOrDefaultAsync();
+
                 if (invoice == null)
                 {
-                    return StatusCode(403, new { message = "No payment found for this vehicle. Please pay to preview the PDF." });
+                    Console.WriteLine($"⚠️ No invoice found for vehicle {vehicleId}");
+                    return StatusCode(403, new
+                    {
+                        message = "No payment found for this vehicle. Please pay to preview the PDF.",
+                        code = "NO_INVOICE"
+                    });
                 }
+
                 var paymentLog = await _context.PaymentLogs
                     .Where(p => p.InvoiceId == invoice.InvoiceId)
                     .OrderByDescending(p => p.LogId)
                     .FirstOrDefaultAsync();
+
                 if (paymentLog == null || paymentLog.Status != "Paid")
                 {
-                    return StatusCode(403, new { message = "Payment required. Please complete payment to preview the PDF." });
+                    Console.WriteLine($"❌ Payment verification failed");
+                    return StatusCode(403, new
+                    {
+                        message = "Payment required. Please complete payment to preview the PDF.",
+                        code = "PAYMENT_REQUIRED"
+                    });
                 }
 
                 // Get service history for the vehicle
@@ -235,12 +346,21 @@ namespace Vpassbackend.Controllers
                 // Generate PDF
                 var pdfBytes = await _pdfService.GenerateVehicleServiceHistoryPdfAsync(vehicle, serviceHistory);
 
+                Console.WriteLine($"✅ PDF preview generated successfully");
+
                 // Return file for preview (inline display)
                 return File(pdfBytes, "application/pdf");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error generating PDF", error = ex.Message });
+                Console.WriteLine($"❌ Error generating PDF preview: {ex.Message}");
+                Console.WriteLine($"📚 Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new
+                {
+                    message = "Error generating PDF",
+                    error = ex.Message,
+                    code = "INTERNAL_ERROR"
+                });
             }
         }
     }

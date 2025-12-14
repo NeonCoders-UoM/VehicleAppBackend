@@ -15,13 +15,23 @@ namespace Vpassbackend.Services
             var connectionString = configuration["AzureBlobStorage:ConnectionString"];
             var containerName = configuration["AzureBlobStorage:ContainerName"];
 
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("Azure Blob Storage connection string is not configured.");
+            }
+
+            if (string.IsNullOrEmpty(containerName))
+            {
+                throw new InvalidOperationException("Azure Blob Storage container name is not configured.");
+            }
+
             // Parse AccountName and AccountKey from the connection string
             var accountName = ParseConnectionStringValue(connectionString, "AccountName");
             var accountKey = ParseConnectionStringValue(connectionString, "AccountKey");
 
-            if (accountName == null || accountKey == null)
+            if (string.IsNullOrEmpty(accountName) || string.IsNullOrEmpty(accountKey))
             {
-                throw new InvalidOperationException("AccountName or AccountKey missing in connection string.");
+                throw new InvalidOperationException($"AccountName or AccountKey missing in connection string. AccountName: {accountName ?? "null"}, AccountKey: {(string.IsNullOrEmpty(accountKey) ? "null" : "present")}");
             }
 
             Credential = new StorageSharedKeyCredential(accountName, accountKey);

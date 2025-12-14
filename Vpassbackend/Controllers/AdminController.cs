@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Vpassbackend.Data;
 using Vpassbackend.Models;
 using Vpassbackend.DTOs;
+using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
 {
@@ -13,10 +14,12 @@ namespace Vpassbackend.Controllers
     public class AdminController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public AdminController(ApplicationDbContext context)
+        public AdminController(ApplicationDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         [HttpPost("user-register")]
@@ -37,6 +40,9 @@ namespace Vpassbackend.Controllers
                     return BadRequest($"Service center with Station_id {dto.Station_id.Value} does not exist.");
             }
 
+            // Store the plain password before hashing for email notification
+            var plainPassword = dto.Password;
+
             var user = new User
             {
                 FirstName = dto.FirstName,
@@ -49,6 +55,65 @@ namespace Vpassbackend.Controllers
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            // Send welcome email to Cashiers and Data Operators with their credentials
+            if (dto.UserRoleId == 4 || dto.UserRoleId == 5) // Cashier or DataOperator
+            {
+                try
+                {
+                    var roleName = dto.UserRoleId == 4 ? "Cashier" : "Data Operator";
+                    var serviceCenter = dto.Station_id.HasValue 
+                        ? await _context.ServiceCenters.FindAsync(dto.Station_id.Value)
+                        : null;
+                    var serviceCenterName = serviceCenter?.Station_name ?? "Service Center";
+
+                    var emailSubject = $"Welcome to {serviceCenterName} - Your Account Details";
+                    var emailBody = $@"
+                        <html>
+                        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                            <div style='max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;'>
+                                <div style='background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                                    <h2 style='color: #2563eb; margin-top: 0;'>Welcome to {serviceCenterName}!</h2>
+                                    
+                                    <p>Dear {dto.FirstName} {dto.LastName},</p>
+                                    
+                                    <p>Your account has been created successfully. You have been assigned the role of <strong>{roleName}</strong> at {serviceCenterName}.</p>
+                                    
+                                    <div style='background-color: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;'>
+                                        <h3 style='margin-top: 0; color: #2563eb;'>Your Login Credentials</h3>
+                                        <p style='margin: 10px 0;'><strong>Email:</strong> {dto.Email}</p>
+                                        <p style='margin: 10px 0;'><strong>Password:</strong> {plainPassword}</p>
+                                        <p style='margin: 10px 0;'><strong>Role:</strong> {roleName}</p>
+                                    </div>
+                                    
+                                    <div style='background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;'>
+                                        <p style='margin: 0;'><strong>⚠️ Important Security Note:</strong></p>
+                                        <p style='margin: 10px 0 0 0;'>For security reasons, please change your password after your first login. Keep your credentials secure and do not share them with anyone.</p>
+                                    </div>
+                                    
+                                    <p>If you have any questions or need assistance, please contact your Service Center Administrator.</p>
+                                    
+                                    <p style='margin-top: 30px;'>Best regards,<br/>
+                                    <strong>{serviceCenterName} Team</strong></p>
+                                </div>
+                                
+                                <div style='text-align: center; margin-top: 20px; color: #666; font-size: 12px;'>
+                                    <p>This is an automated message. Please do not reply to this email.</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    ";
+
+                    await _emailService.SendEmailAsync(dto.Email, emailSubject, emailBody);
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but don't fail the user creation
+                    Console.WriteLine($"Failed to send welcome email to {dto.Email}: {ex.Message}");
+                    // User is still created successfully even if email fails
+                }
+            }
 
             return Ok("User created.");
         }
@@ -101,18 +166,48 @@ namespace Vpassbackend.Controllers
             await _context.SaveChangesAsync();
             return Ok("User deleted.");
         }
+
+        // Get users for a specific service center (Cashiers and Data Operators only)
+        [HttpGet("service-center/{serviceCenterId}/users")]
+        public async Task<IActionResult> GetServiceCenterUsers(int serviceCenterId)
+        {
+            // Verify service center exists
+            var serviceCenter = await _context.ServiceCenters.FindAsync(serviceCenterId);
+            if (serviceCenter == null)
+                return NotFound($"Service center with ID {serviceCenterId} not found.");
+
+            // Get users assigned to this service center with roles 4 (Cashier) or 5 (DataOperator)
+            var users = await _context.Users
+                .Include(u => u.UserRole)
+                .Where(u => u.Station_id == serviceCenterId && (u.UserRoleId == 4 || u.UserRoleId == 5))
+                .Select(u => new
+                {
+                    id = u.UserId,
+                    firstName = u.FirstName,
+                    lastName = u.LastName,
+                    email = u.Email,
+                    userRole = u.UserRole.UserRoleName,
+                    station_id = u.Station_id
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(int id)
         {
             var user = await _context.Users
+                .Include(u => u.UserRole)
                 .Where(u => u.UserId == id)
                 .Select(u => new
                 {
-                    userId = u.UserId,
+                    id = u.UserId,
                     firstName = u.FirstName,
                     lastName = u.LastName,
                     email = u.Email,
-                    Role = u.UserRole.UserRoleName// Adjust if you have a navigation property
+                    userRole = u.UserRole.UserRoleName,
+                    station_id = u.Station_id
                 })
                 .FirstOrDefaultAsync();
 

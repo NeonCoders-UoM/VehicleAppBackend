@@ -1,3 +1,4 @@
+using System.Net;
 using Vpassbackend.Data;
 using Vpassbackend.Services;
 using Vpassbackend.BackgroundServices;
@@ -16,6 +17,9 @@ using System.Text;
 // await Vpassbackend.Scripts.DirectPdfProcessor.Main(args);
 // return;
 // ============================================================================
+
+// Force TLS 1.2 for SMTP and other secure connections (required for Railway)
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -224,5 +224,28 @@ namespace Vpassbackend.Controllers
                 return StatusCode(500, new { message = "An error occurred while fetching loyalty points", error = ex.Message });
             }
         }
+
+        // Apply loyalty discount to appointment
+        [HttpPost("{appointmentId}/apply-loyalty-discount")]
+        public async Task<IActionResult> ApplyLoyaltyDiscount(int appointmentId, [FromBody] int pointsToRedeem)
+        {
+            try
+            {
+                var result = await _service.ApplyLoyaltyDiscountAsync(appointmentId, pointsToRedeem);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException invEx)
+            {
+                return BadRequest(new { message = invEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while applying loyalty discount", error = ex.Message });
+            }
+        }
     }
 }

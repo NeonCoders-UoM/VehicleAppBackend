@@ -56,32 +56,42 @@ namespace Vpassbackend.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Send welcome email to Cashiers and Data Operators with their credentials
+            // Send welcome email asynchronously in background (fire-and-forget)
+            // This ensures user creation completes quickly even if email service is slow/failing
             if (dto.UserRoleId == 4 || dto.UserRoleId == 5) // Cashier or DataOperator
             {
-                try
-                {
-                    var roleName = dto.UserRoleId == 4 ? "Cashier" : "Data Operator";
-                    var serviceCenter = dto.Station_id.HasValue 
-                        ? await _context.ServiceCenters.FindAsync(dto.Station_id.Value)
-                        : null;
-                    var serviceCenterName = serviceCenter?.Station_name ?? "Service Center";
+                var userEmail = dto.Email;
+                var firstName = dto.FirstName;
+                var lastName = dto.LastName;
+                var userRoleId = dto.UserRoleId;
+                var stationId = dto.Station_id;
 
-                    var emailSubject = $"Welcome to {serviceCenterName} - Your Account Details";
-                    var emailBody = $@"
+                // Fire and forget - don't await this
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var roleName = userRoleId == 4 ? "Cashier" : "Data Operator";
+                        var serviceCenter = stationId.HasValue
+                            ? await _context.ServiceCenters.FindAsync(stationId.Value)
+                            : null;
+                        var serviceCenterName = serviceCenter?.Station_name ?? "Service Center";
+
+                        var emailSubject = $"Welcome to {serviceCenterName} - Your Account Details";
+                        var emailBody = $@"
                         <html>
                         <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
                             <div style='max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;'>
                                 <div style='background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
                                     <h2 style='color: #2563eb; margin-top: 0;'>Welcome to {serviceCenterName}!</h2>
                                     
-                                    <p>Dear {dto.FirstName} {dto.LastName},</p>
+                                    <p>Dear {firstName} {lastName},</p>
                                     
                                     <p>Your account has been created successfully. You have been assigned the role of <strong>{roleName}</strong> at {serviceCenterName}.</p>
                                     
                                     <div style='background-color: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;'>
                                         <h3 style='margin-top: 0; color: #2563eb;'>Your Login Credentials</h3>
-                                        <p style='margin: 10px 0;'><strong>Email:</strong> {dto.Email}</p>
+                                        <p style='margin: 10px 0;'><strong>Email:</strong> {userEmail}</p>
                                         <p style='margin: 10px 0;'><strong>Password:</strong> {plainPassword}</p>
                                         <p style='margin: 10px 0;'><strong>Role:</strong> {roleName}</p>
                                     </div>
@@ -105,14 +115,20 @@ namespace Vpassbackend.Controllers
                         </html>
                     ";
 
-                    await _emailService.SendEmailAsync(dto.Email, emailSubject, emailBody);
-                }
-                catch (Exception ex)
-                {
-                    // Log the error but don't fail the user creation
-                    Console.WriteLine($"Failed to send welcome email to {dto.Email}: {ex.Message}");
-                    // User is still created successfully even if email fails
-                }
+                        await _emailService.SendEmailAsync(userEmail, emailSubject, emailBody);
+                        Console.WriteLine($"✅ Email sent successfully to {userEmail}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but don't fail the user creation
+                        Console.WriteLine($"❌ FAILED to send welcome email to {userEmail}");
+                        Console.WriteLine($"Error: {ex.Message}");
+                        if (ex.InnerException != null)
+                        {
+                            Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                        }
+                    }
+                });
             }
 
             return Ok("User created.");

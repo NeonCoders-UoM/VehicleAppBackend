@@ -12,5 +12,7 @@
         public int ServiceCenterId { get; set; }
         public string ServiceCenterName { get; set; }
         public string? Status { get; set; }
+        public int CustomerLoyaltyPoints { get; set; }
+        public int CustomerId { get; set; }
     }
 }

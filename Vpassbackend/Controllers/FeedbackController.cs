@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Vpassbackend.Data;
 using Vpassbackend.DTOs;
 using Vpassbackend.Models;
@@ -88,6 +89,7 @@ namespace Vpassbackend.Controllers
 
         // GET: api/Feedback
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<FeedbackDTO>>> GetAllFeedbacks(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -101,8 +103,20 @@ namespace Vpassbackend.Controllers
                 .Include(f => f.Vehicle)
                 .AsQueryable();
 
-            // Apply filters
-            if (serviceCenterId.HasValue)
+            // Get user role from token claims
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userStationId = User.FindFirst("station_id")?.Value;
+
+            // If user is ServiceCenterAdmin, only show their feedbacks
+            if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userStationId))
+            {
+                if (int.TryParse(userStationId, out int stationId))
+                {
+                    query = query.Where(f => f.ServiceCenterId == stationId);
+                }
+            }
+            // Super Admin can optionally filter by serviceCenterId
+            else if (serviceCenterId.HasValue)
             {
                 query = query.Where(f => f.ServiceCenterId == serviceCenterId.Value);
             }
@@ -237,12 +251,25 @@ namespace Vpassbackend.Controllers
 
         // GET: api/Feedback/Stats
         [HttpGet("Stats")]
-        // [Authorize(Roles = "Admin,SuperAdmin,ServiceCenterAdmin")]
+        [Authorize]
         public async Task<ActionResult<FeedbackStatsDTO>> GetFeedbackStats([FromQuery] int? serviceCenterId = null)
         {
             var query = _context.Feedbacks.AsQueryable();
 
-            if (serviceCenterId.HasValue)
+            // Get user role from token claims
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userStationId = User.FindFirst("station_id")?.Value;
+
+            // If user is ServiceCenterAdmin, only show their stats
+            if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userStationId))
+            {
+                if (int.TryParse(userStationId, out int stationId))
+                {
+                    query = query.Where(f => f.ServiceCenterId == stationId);
+                }
+            }
+            // Super Admin can optionally filter by serviceCenterId
+            else if (serviceCenterId.HasValue)
             {
                 query = query.Where(f => f.ServiceCenterId == serviceCenterId.Value);
             }

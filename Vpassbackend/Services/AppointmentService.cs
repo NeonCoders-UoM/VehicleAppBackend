@@ -254,7 +254,9 @@ namespace Vpassbackend.Services
                 VehicleId = appointment.Vehicle?.VehicleId ?? 0,
                 ServiceCenterId = appointment.Station_id,
                 ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown",
-                Status = appointment.Status
+                Status = appointment.Status,
+                CustomerLoyaltyPoints = appointment.Vehicle?.Customer?.LoyaltyPoints ?? 0,
+                CustomerId = appointment.CustomerId
             };
         }
 
@@ -480,6 +482,55 @@ namespace Vpassbackend.Services
                 appointmentId = appointmentId,
                 loyaltyPoints = totalLoyaltyPoints,
                 status = appointment.Status
+            };
+        }
+
+        public async Task<object> ApplyLoyaltyDiscountAsync(int appointmentId, int pointsToRedeem)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Customer)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found.");
+
+            if (appointment.Customer == null)
+                throw new KeyNotFoundException("Customer not found for this appointment.");
+
+            // Check if customer has enough loyalty points
+            if (appointment.Customer.LoyaltyPoints < pointsToRedeem)
+                throw new InvalidOperationException($"Customer only has {appointment.Customer.LoyaltyPoints} loyalty points, cannot redeem {pointsToRedeem} points.");
+
+            // Calculate discount: every 1000 points = 1% discount
+            decimal discountPercentage = (decimal)pointsToRedeem / 1000m;
+
+            // Get current appointment price
+            decimal originalPrice = appointment.AppointmentPrice ?? 0;
+
+            // Calculate discount amount
+            decimal discountAmount = originalPrice * (discountPercentage / 100m);
+
+            // Calculate final price
+            decimal finalPrice = originalPrice - discountAmount;
+
+            // Deduct loyalty points from customer
+            appointment.Customer.LoyaltyPoints -= pointsToRedeem;
+
+            // Update appointment price
+            appointment.AppointmentPrice = finalPrice;
+
+            await _db.SaveChangesAsync();
+
+            return new
+            {
+                appointmentId = appointmentId,
+                originalPrice = originalPrice,
+                discountPercentage = discountPercentage,
+                discountAmount = discountAmount,
+                finalPrice = finalPrice,
+                pointsRedeemed = pointsToRedeem,
+                remainingLoyaltyPoints = appointment.Customer.LoyaltyPoints,
+                message = $"Successfully applied {discountPercentage}% discount using {pointsToRedeem} loyalty points"
             };
         }
     }

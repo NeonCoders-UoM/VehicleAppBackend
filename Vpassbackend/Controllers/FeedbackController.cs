@@ -107,8 +107,8 @@ namespace Vpassbackend.Controllers
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
             var userStationId = User.FindFirst("station_id")?.Value;
 
-            // If user is ServiceCenterAdmin, only show their feedbacks
-            if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userStationId))
+            // If user is from a service center (ServiceCenterAdmin, Cashier, DataOperator), only show their feedbacks
+            if ((userRole == "ServiceCenterAdmin" || userRole == "Cashier" || userRole == "DataOperator") && !string.IsNullOrEmpty(userStationId))
             {
                 if (int.TryParse(userStationId, out int stationId))
                 {
@@ -260,8 +260,8 @@ namespace Vpassbackend.Controllers
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
             var userStationId = User.FindFirst("station_id")?.Value;
 
-            // If user is ServiceCenterAdmin, only show their stats
-            if (userRole == "ServiceCenterAdmin" && !string.IsNullOrEmpty(userStationId))
+            // If user is from a service center (ServiceCenterAdmin, Cashier, DataOperator), only show their stats
+            if ((userRole == "ServiceCenterAdmin" || userRole == "Cashier" || userRole == "DataOperator") && !string.IsNullOrEmpty(userStationId))
             {
                 if (int.TryParse(userStationId, out int stationId))
                 {

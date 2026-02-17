@@ -134,6 +134,7 @@ builder.Services.AddScoped<AppointmentPaymentService>();
 builder.Services.AddScoped<ServiceCenterSearchService>();
 builder.Services.AddScoped<DailyLimitService>();
 builder.Services.AddScoped<AzureBlobService>();
+builder.Services.AddScoped<IServiceRequestService, ServiceRequestService>();
 
 // --------------------- GOOGLE MAPS SERVICE ---------------------
 builder.Services.AddHttpClient<IGoogleMapsService, GoogleMapsService>();

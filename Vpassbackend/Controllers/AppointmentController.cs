@@ -225,6 +225,52 @@ namespace Vpassbackend.Controllers
             }
         }
 
+        // Delete an appointment
+        [HttpDelete("{appointmentId}")]
+        public async Task<IActionResult> DeleteAppointment(int appointmentId)
+        {
+            try
+            {
+                var result = await _service.DeleteAppointmentAsync(appointmentId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException invEx)
+            {
+                return BadRequest(new { message = invEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while deleting the appointment", error = ex.Message });
+            }
+        }
+
+        // Update an appointment
+        [HttpPut("{appointmentId}")]
+        public async Task<IActionResult> UpdateAppointment(int appointmentId, [FromBody] AppointmentUpdateDTO dto)
+        {
+            try
+            {
+                var result = await _service.UpdateAppointmentAsync(appointmentId, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException invEx)
+            {
+                return BadRequest(new { message = invEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the appointment", error = ex.Message });
+            }
+        }
+
         // Apply loyalty discount to appointment
         [HttpPost("{appointmentId}/apply-loyalty-discount")]
         public async Task<IActionResult> ApplyLoyaltyDiscount(int appointmentId, [FromBody] int pointsToRedeem)

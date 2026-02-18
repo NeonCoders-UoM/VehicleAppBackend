@@ -32,6 +32,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceAvailability> ServiceAvailabilities { get; set; }
         public DbSet<ServiceCenterDailyLimit> ServiceCenterDailyLimits { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<ServiceRequest> ServiceRequests { get; set; }
 
         // Chatbot RAG Models
         public DbSet<ChatConversation> ChatConversations { get; set; }

@@ -231,7 +231,9 @@ namespace Vpassbackend.Services
         public async Task<AppointmentDetailForAdminDTO> GetAppointmentDetailForAdminAsync(int stationId, int appointmentId)
         {
             var appointment = await _db.Appointments
+                .Include(a => a.Customer)
                 .Include(a => a.Vehicle).ThenInclude(v => v.Customer)
+                .Include(a => a.ServiceCenter)
                 .Include(a => a.AppointmentServices).ThenInclude(asv => asv.Service)
                 .FirstOrDefaultAsync(a =>
                     a.AppointmentId == appointmentId &&
@@ -240,12 +242,15 @@ namespace Vpassbackend.Services
             if (appointment == null)
                 throw new KeyNotFoundException("Appointment not found for the specified service center.");
 
+            // Prefer direct Customer navigation; fall back to Vehicle.Customer
+            var customer = appointment.Customer ?? appointment.Vehicle?.Customer;
+
             return new AppointmentDetailForAdminDTO
             {
                 AppointmentId = appointment.AppointmentId,
                 LicensePlate = appointment.Vehicle?.RegistrationNumber ?? "Unknown",
                 VehicleType = appointment.Vehicle?.Model ?? "Unknown",
-                OwnerName = $"{appointment.Vehicle?.Customer?.FirstName ?? "Unknown"} {appointment.Vehicle?.Customer?.LastName ?? ""}".Trim(),
+                OwnerName = $"{customer?.FirstName ?? "Unknown"} {customer?.LastName ?? ""}".Trim(),
                 AppointmentDate = appointment.AppointmentDate ?? DateTime.MinValue,
                 Services = appointment.AppointmentServices?
                     .Where(s => s.Service != null)
@@ -255,8 +260,11 @@ namespace Vpassbackend.Services
                 ServiceCenterId = appointment.Station_id,
                 ServiceCenterName = appointment.ServiceCenter?.Station_name ?? "Unknown",
                 Status = appointment.Status,
-                CustomerLoyaltyPoints = appointment.Vehicle?.Customer?.LoyaltyPoints ?? 0,
-                CustomerId = appointment.CustomerId
+                CustomerLoyaltyPoints = customer?.LoyaltyPoints ?? 0,
+                CustomerId = appointment.CustomerId,
+                CustomerEmail = customer?.Email,
+                CustomerPhone = customer?.PhoneNumber,
+                AppointmentPrice = appointment.AppointmentPrice
             };
         }
 
@@ -482,6 +490,143 @@ namespace Vpassbackend.Services
                 appointmentId = appointmentId,
                 loyaltyPoints = totalLoyaltyPoints,
                 status = appointment.Status
+            };
+        }
+
+        // Delete an appointment
+        public async Task<object> DeleteAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .Include(a => a.Customer)
+                .Include(a => a.Vehicle)
+                .Include(a => a.ServiceCenter)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found.");
+
+            if (appointment.Status == "Completed")
+                throw new InvalidOperationException("Cannot delete a completed appointment.");
+
+            // Remove associated appointment services first
+            var appointmentServices = await _db.AppointmentServices
+                .Where(asv => asv.AppointmentId == appointmentId)
+                .ToListAsync();
+            _db.AppointmentServices.RemoveRange(appointmentServices);
+
+            // Remove the appointment
+            _db.Appointments.Remove(appointment);
+            await _db.SaveChangesAsync();
+
+            // Send notification to customer about appointment cancellation
+            try
+            {
+                var message = $"Your appointment (ID: {appointmentId}) for {appointment.Vehicle?.RegistrationNumber} at {appointment.ServiceCenter?.Station_name} has been cancelled.";
+                await _notificationService.CreateAppointmentNotificationAsync(appointment, message);
+                _logger.LogInformation("Successfully sent cancellation notification for appointment {AppointmentId} to customer {CustomerId}", appointmentId, appointment.CustomerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending cancellation notification for appointment {AppointmentId}", appointmentId);
+            }
+
+            return new
+            {
+                message = "Appointment deleted successfully.",
+                appointmentId = appointmentId
+            };
+        }
+
+        // Update an appointment
+        public async Task<object> UpdateAppointmentAsync(int appointmentId, AppointmentUpdateDTO dto)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.AppointmentServices)
+                .Include(a => a.Customer)
+                .Include(a => a.Vehicle)
+                .Include(a => a.ServiceCenter)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId);
+
+            if (appointment == null)
+                throw new KeyNotFoundException($"Appointment with ID {appointmentId} not found.");
+
+            if (appointment.Status == "Completed")
+                throw new InvalidOperationException("Cannot update a completed appointment.");
+
+            // Update appointment date if provided
+            if (dto.AppointmentDate.HasValue)
+            {
+                appointment.AppointmentDate = dto.AppointmentDate.Value;
+            }
+
+            // Update status if provided
+            if (!string.IsNullOrEmpty(dto.Status))
+            {
+                appointment.Status = dto.Status;
+            }
+
+            // Update description if provided
+            if (dto.Description != null)
+            {
+                appointment.Description = dto.Description;
+            }
+
+            // Update services if provided
+            if (dto.ServiceIds != null && dto.ServiceIds.Count > 0)
+            {
+                // Validate services exist at the station
+                var availableServices = await _db.ServiceCenterServices
+                    .Where(scs => scs.Station_id == appointment.Station_id && dto.ServiceIds.Contains(scs.ServiceId))
+                    .Include(scs => scs.Service)
+                    .ToListAsync();
+
+                if (availableServices.Count != dto.ServiceIds.Count)
+                    throw new InvalidOperationException("One or more selected services are not available at the selected station.");
+
+                // Remove old services
+                var oldServices = await _db.AppointmentServices
+                    .Where(asv => asv.AppointmentId == appointmentId)
+                    .ToListAsync();
+                _db.AppointmentServices.RemoveRange(oldServices);
+
+                // Add new services
+                foreach (var svc in availableServices)
+                {
+                    _db.AppointmentServices.Add(new Models.AppointmentService
+                    {
+                        AppointmentId = appointmentId,
+                        ServiceId = svc.ServiceId,
+                        ServicePrice = svc.CustomPrice ?? svc.Service.BasePrice ?? 0
+                    });
+                }
+
+                // Recalculate price
+                appointment.AppointmentPrice = availableServices.Sum(s => s.CustomPrice ?? s.Service.BasePrice ?? 0);
+            }
+
+            await _db.SaveChangesAsync();
+
+            // Send notification to customer about appointment update
+            try
+            {
+                var message = $"Your appointment (ID: {appointmentId}) for {appointment.Vehicle?.RegistrationNumber} at {appointment.ServiceCenter?.Station_name} has been updated.";
+                await _notificationService.CreateAppointmentNotificationAsync(appointment, message);
+                _logger.LogInformation("Successfully sent update notification for appointment {AppointmentId} to customer {CustomerId}", appointmentId, appointment.CustomerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending update notification for appointment {AppointmentId}", appointmentId);
+            }
+
+            return new
+            {
+                message = "Appointment updated successfully.",
+                appointmentId = appointment.AppointmentId,
+                appointmentDate = appointment.AppointmentDate,
+                status = appointment.Status,
+                description = appointment.Description,
+                appointmentPrice = appointment.AppointmentPrice
             };
         }
 

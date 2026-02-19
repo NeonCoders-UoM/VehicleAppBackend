@@ -31,6 +31,9 @@ namespace Vpassbackend.Models
 
         public int? Year { get; set; }
 
+        [MaxLength(20)]
+        public string Status { get; set; } = "Active"; // Active, PendingTransfer, Sold
+
         // Navigation properties
         public required Customer Customer { get; set; }
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
@@ -40,5 +43,6 @@ namespace Vpassbackend.Models
         public ICollection<VehicleServiceHistory> ServiceHistory { get; set; } = new List<VehicleServiceHistory>();
         public ICollection<ServiceReminder> ServiceReminders { get; set; } = new List<ServiceReminder>();
         public ICollection<FuelEfficiency> FuelEfficiencies { get; set; } = new List<FuelEfficiency>();
+        public ICollection<VehicleTransfer> TransferHistory { get; set; } = new List<VehicleTransfer>();
     }
 }

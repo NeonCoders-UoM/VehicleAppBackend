@@ -25,6 +25,7 @@ namespace Vpassbackend.Data
         public DbSet<ServiceReminder> ServiceReminders { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleServiceHistory> VehicleServiceHistories { get; set; }
+        public DbSet<VehicleTransfer> VehicleTransfers { get; set; }
         public DbSet<EmergencyCallCenter> EmergencyCallCenters { get; set; }
         public DbSet<Feedback> Feedbacks { get; set; }
         public DbSet<FuelEfficiency> FuelEfficiencies { get; set; }
@@ -183,6 +184,25 @@ namespace Vpassbackend.Data
                 .HasOne(n => n.Appointment)
                 .WithMany()
                 .HasForeignKey(n => n.AppointmentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Configure VehicleTransfer relationships
+            modelBuilder.Entity<VehicleTransfer>()
+                .HasOne(vt => vt.Vehicle)
+                .WithMany(v => v.TransferHistory)
+                .HasForeignKey(vt => vt.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VehicleTransfer>()
+                .HasOne(vt => vt.FromOwner)
+                .WithMany()
+                .HasForeignKey(vt => vt.FromOwnerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<VehicleTransfer>()
+                .HasOne(vt => vt.ToOwner)
+                .WithMany()
+                .HasForeignKey(vt => vt.ToOwnerId)
                 .OnDelete(DeleteBehavior.NoAction);
         }
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vpassbackend.Data;
 
@@ -11,9 +12,11 @@ using Vpassbackend.Data;
 namespace Vpassbackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260212202402_AddGoogleAuth")]
+    partial class AddGoogleAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1005,11 +1008,6 @@ namespace Vpassbackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<int?>("Year")
                         .HasColumnType("int");
 
@@ -1075,58 +1073,6 @@ namespace Vpassbackend.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("VehicleServiceHistories");
-                });
-
-            modelBuilder.Entity("Vpassbackend.Models.VehicleTransfer", b =>
-                {
-                    b.Property<int>("TransferId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransferId"));
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("FromOwnerId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("InitiatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("MileageAtTransfer")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal?>("SalePrice")
-                        .HasColumnType("decimal(10, 2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("ToOwnerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TransferId");
-
-                    b.HasIndex("FromOwnerId");
-
-                    b.HasIndex("ToOwnerId");
-
-                    b.HasIndex("VehicleId");
-
-                    b.ToTable("VehicleTransfers");
                 });
 
             modelBuilder.Entity("Vpassbackend.Models.Appointment", b =>
@@ -1445,33 +1391,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("Vpassbackend.Models.VehicleTransfer", b =>
-                {
-                    b.HasOne("Vpassbackend.Models.Customer", "FromOwner")
-                        .WithMany()
-                        .HasForeignKey("FromOwnerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Vpassbackend.Models.Customer", "ToOwner")
-                        .WithMany()
-                        .HasForeignKey("ToOwnerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Vpassbackend.Models.Vehicle", "Vehicle")
-                        .WithMany("TransferHistory")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FromOwner");
-
-                    b.Navigation("ToOwner");
-
-                    b.Navigation("Vehicle");
-                });
-
             modelBuilder.Entity("Vpassbackend.Models.Appointment", b =>
                 {
                     b.Navigation("AppointmentServices");
@@ -1525,8 +1444,6 @@ namespace Vpassbackend.Migrations
                     b.Navigation("ServiceHistory");
 
                     b.Navigation("ServiceReminders");
-
-                    b.Navigation("TransferHistory");
                 });
 #pragma warning restore 612, 618
         }

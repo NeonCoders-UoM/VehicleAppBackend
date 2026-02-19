@@ -4,7 +4,7 @@ using Vpassbackend.Data;
 using Vpassbackend.Models;
 using Vpassbackend.DTOs;
 using Microsoft.AspNetCore.Authorization;
-
+using System.Security.Claims;
 using Vpassbackend.Services;
 
 namespace Vpassbackend.Controllers
@@ -45,6 +45,47 @@ namespace Vpassbackend.Controllers
             });
         }
 
+        // GET: api/Auth/me - Get current user from token
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized("Invalid token");
+                }
+
+                var user = await _context.Users
+                    .Include(u => u.UserRole)
+                    .Include(u => u.ServiceCenter)
+                    .FirstOrDefaultAsync(u => u.UserId == userId);
+
+                if (user == null)
+                {
+                    return NotFound("User not found");
+                }
+
+                return Ok(new
+                {
+                    userId = user.UserId,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    email = user.Email,
+                    userRole = user.UserRole.UserRoleName,
+                    userRoleId = user.UserRoleId,
+                    station_id = user.Station_id,
+                    serviceCenterName = user.ServiceCenter?.Station_name
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching user: {ex.Message}");
+            }
+        }
+
         [HttpPost("login-customer")]
         [AllowAnonymous]
         public async Task<IActionResult> LoginCustomer(CustomerLoginDto dto)
@@ -65,6 +106,69 @@ namespace Vpassbackend.Controllers
 
             // ✅ Include the CustomerId in your response
             return Ok(new { token, customerId = customer.CustomerId });
+        }
+
+        [HttpPost("google-login-customer")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLoginCustomer(GoogleLoginDto dto)
+        {
+            try
+            {
+                // Verify the Google ID token
+                var payload = await Google.Apis.Auth.GoogleJsonWebSignature.ValidateAsync(dto.IdToken);
+
+                var email = payload.Email;
+                var googleId = payload.Subject;
+                var firstName = payload.GivenName ?? "User";
+                var lastName = payload.FamilyName ?? "";
+
+                // Check if customer already exists
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Email == email);
+
+                if (customer == null)
+                {
+                    // Create a new customer for Google sign-in
+                    customer = new Customer
+                    {
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Email = email,
+                        Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()), // Random password
+                        PhoneNumber = "",
+                        Address = "",
+                        NIC = "",
+                        IsEmailVerified = true, // Google accounts are already verified
+                        AuthProvider = "google",
+                        GoogleId = googleId,
+                        LoyaltyPoints = 0,
+                    };
+
+                    _context.Customers.Add(customer);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    // Link Google to existing account if not already linked
+                    if (string.IsNullOrEmpty(customer.GoogleId))
+                    {
+                        customer.GoogleId = googleId;
+                        customer.AuthProvider = customer.AuthProvider == "local" ? "local,google" : customer.AuthProvider;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                var token = _tokenService.CreateTokenForCustomer(customer);
+                return Ok(new { token, customerId = customer.CustomerId, isNewUser = customer.PhoneNumber == "" });
+            }
+            catch (Google.Apis.Auth.InvalidJwtException)
+            {
+                return Unauthorized("Invalid Google token");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Google authentication failed: {ex.Message}");
+            }
         }
 
 

@@ -49,5 +49,12 @@ namespace Vpassbackend.Models
         public string? Platform { get; set; }
 
         public bool PushNotificationsEnabled { get; set; } = false;
+
+        // Google Auth fields
+        [MaxLength(50)]
+        public string AuthProvider { get; set; } = "local"; // "local" or "google"
+
+        [MaxLength(200)]
+        public string? GoogleId { get; set; }
     }
 }

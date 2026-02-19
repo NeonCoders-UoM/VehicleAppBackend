@@ -1,4 +1,3 @@
-using System.Net;
 using Vpassbackend.Data;
 using Vpassbackend.Services;
 using Vpassbackend.BackgroundServices;
@@ -17,9 +16,6 @@ using System.Text;
 // await Vpassbackend.Scripts.DirectPdfProcessor.Main(args);
 // return;
 // ============================================================================
-
-// Force TLS 1.2 for SMTP and other secure connections (required for Railway)
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,8 +58,8 @@ builder.Services.AddCors(options =>
                 origin.StartsWith("file://"))
                 return true;
 
-            // Allow Vercel deployed Next.js frontend (production)
-            if (origin == "https://web-app-frontend-five.vercel.app")
+            // Allow Vercel deployed Next.js frontend
+            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
                 return true;
 
             // Allow any Vercel preview deployments
@@ -95,8 +91,8 @@ builder.Services.AddCors(options =>
             if (origin == "https://yourproductionsite.com")
                 return true;
 
-            // Allow Vercel deployed Next.js frontend (production)
-            if (origin == "https://web-app-frontend-five.vercel.app")
+            // Allow Vercel deployed Next.js frontend
+            if (origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app")
                 return true;
 
             // Allow any Vercel preview deployments
@@ -129,6 +125,7 @@ builder.Services.AddScoped<ILoyaltyPointsService, LoyaltyPointsService>();
 builder.Services.AddScoped<IFuelEfficiencyService, FuelEfficiencyService>();
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IVehicleTransferService, VehicleTransferService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<AppointmentPaymentService>();
 builder.Services.AddScoped<ServiceCenterSearchService>();
@@ -290,7 +287,7 @@ app.Use(async (context, next) =>
                            origin.StartsWith("capacitor://") ||
                            origin.StartsWith("ionic://") ||
                            origin.StartsWith("file://") ||
-                           origin == "https://web-app-frontend-five.vercel.app" ||
+                           origin == "https://web-app-frontend-jtkoyn7az-kin-lgtms-projects.vercel.app" ||
                            origin.EndsWith(".vercel.app") ||
                            origin == "https://yourproductionsite.com";
             }

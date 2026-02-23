@@ -14,5 +14,8 @@
         public string? Status { get; set; }
         public int CustomerLoyaltyPoints { get; set; }
         public int CustomerId { get; set; }
+        public string? CustomerEmail { get; set; }
+        public string? CustomerPhone { get; set; }
+        public decimal? AppointmentPrice { get; set; }
     }
 }

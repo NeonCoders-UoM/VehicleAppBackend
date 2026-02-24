@@ -15,6 +15,9 @@ namespace Vpassbackend.DTOs
 
         [MaxLength(50)]
         public string? Category { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Custom price must be greater than 0")]
+        public decimal? CustomPrice { get; set; }
     }
 
     // DTO for approving a request
@@ -40,8 +43,7 @@ namespace Vpassbackend.DTOs
         public string ServiceName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Category { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public decimal? ApprovedBasePrice { get; set; }
+        public string Status { get; set; } = string.Empty;        public decimal? RequestedCustomPrice { get; set; }        public decimal? ApprovedBasePrice { get; set; }
         public string? RejectionReason { get; set; }
         
         public int RequestedByUserId { get; set; }

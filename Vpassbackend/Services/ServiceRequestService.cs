@@ -58,6 +58,7 @@ namespace Vpassbackend.Services
                 ServiceName = dto.ServiceName,
                 Description = dto.Description,
                 Category = dto.Category,
+                RequestedCustomPrice = dto.CustomPrice,
                 RequestedByUserId = userId,
                 RequestedAt = DateTime.UtcNow,
                 Status = ServiceRequestStatus.Pending
@@ -179,6 +180,32 @@ namespace Vpassbackend.Services
 
             await _context.SaveChangesAsync();
 
+            // Automatically add the service to the requesting service center
+            if (request.RequestedBy?.Station_id != null)
+            {
+                var serviceCenterService = new ServiceCenterService
+                {
+                    Station_id = request.RequestedBy.Station_id.Value,
+                    ServiceId = newService.ServiceId,
+                    BasePrice = dto.BasePrice,
+                    CustomPrice = request.RequestedCustomPrice,
+                    LoyaltyPoints = 0,
+                    IsAvailable = true,
+                    Notes = $"Auto-added from approved service request #{request.ServiceRequestId}",
+                    ServiceCenter = request.RequestedBy.ServiceCenter!,
+                    Service = newService
+                };
+
+                _context.ServiceCenterServices.Add(serviceCenterService);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Service '{newService.ServiceName}' automatically added to Service Center ID {request.RequestedBy.Station_id}");
+            }
+            else
+            {
+                _logger.LogWarning($"Could not auto-add service to service center: Request {requestId} has no associated service center");
+            }
+
             // Notify the requester
             await NotifyRequesterAboutApprovalAsync(request);
 
@@ -227,6 +254,7 @@ namespace Vpassbackend.Services
                 Description = request.Description,
                 Category = request.Category,
                 Status = request.Status.ToString(),
+                RequestedCustomPrice = request.RequestedCustomPrice,
                 ApprovedBasePrice = request.ApprovedBasePrice,
                 RejectionReason = request.RejectionReason,
                 RequestedByUserId = request.RequestedByUserId,

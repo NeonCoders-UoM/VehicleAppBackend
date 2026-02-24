@@ -29,6 +29,9 @@ namespace Vpassbackend.Models
         public ServiceRequestStatus Status { get; set; } = ServiceRequestStatus.Pending;
 
         [Column(TypeName = "decimal(10, 2)")]
+        public decimal? RequestedCustomPrice { get; set; }
+
+        [Column(TypeName = "decimal(10, 2)")]
         public decimal? ApprovedBasePrice { get; set; }
 
         [MaxLength(500)]
